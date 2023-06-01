@@ -286,6 +286,7 @@ function setPanelListeners(){
 	panel.addEventListener(
 	  "touchstart",	
 	  (event) => {
+	  	console.log(previousCard, event.target.dataset.taxonId)
 	  	if(event.target.dataset.type == 'species_card'){
 
 	  		if(previousCard != event.target.dataset.taxonId){
@@ -303,8 +304,13 @@ function setPanelListeners(){
 		  			map.getLayers().item(index).setStyle(clusterStyle)
 		  			map.getLayers().item(index).setZIndex(1)	  		
 			  	}
+			  	previousCard = 	event.target.dataset.taxonId
+			}else{
+				let index = SPECIES_LAYERS[previousCard].layerIndex
+	  			map.getLayers().item(index).setStyle(clusterStyle)
+	  			map.getLayers().item(index).setZIndex(1)
+	  			previousCard = null
 			}
-			previousCard = 	event.target.dataset.taxonId
 	  	}
 	  },
 	  false
@@ -323,7 +329,7 @@ async function getObs(url){
 
 		if(!SPECIES_LAYERS[key]){
 
-			SPECIES_LAYERS[key] = { 'name': obs.species_id[key],
+			SPECIES_LAYERS[key] = { 'name': obs.obs_by_species[key][0].name,
 									'layerIndex':  map.getLayers().getLength(),
 									'color': colors[map.getLayers().getLength()%colors.length] }
 
@@ -444,6 +450,23 @@ function search() {
 	})
 }
 
+function selectPlace(event){
+
+	let element
+	if(event === null || event === undefined){
+		element = document.querySelector("#placesDataList")
+	}else if(event.target.value != ""){
+		element = event.target
+	}
+
+	if(element.list.firstChild){
+		let dataset = element.list.firstChild.dataset
+		let locWebMerc = ol.proj.fromLonLat([dataset.lng,dataset.lat])
+		map.getView().animate({zoom: 12},{center: locWebMerc},{zoom: 15})		
+		element.value = ""
+	}
+
+}
 
 function loadMap(lat,long,z,cat) {
 
@@ -488,12 +511,14 @@ function loadMap(lat,long,z,cat) {
 	  element: infoElement,
 	  offset: [5, 5],
 	  stopEvent: true,
+	  autoPan: {animation:{duration:500}}
 	});
 
 	map.addOverlay(infoOverlay);
 
 	let pointerOverFeature = null;
-	map.on('pointermove', (evt) => {
+	function showCards(evt){
+
 		const featureOver = map.forEachFeatureAtPixel(evt.pixel, (feature) => {
 				return feature;
 		}); 
@@ -507,46 +532,29 @@ function loadMap(lat,long,z,cat) {
 			let firstFeature = featureOver.get('features')[0]
         	nameElement.innerHTML = firstFeature.get('name')
         	obsElement.innerHTML = firstFeature.get('description')
-        	imgElement.src = firstFeature.get('photos')
+        	if(firstFeature.get('photos') == ''){
+        		imgElement.style.display = 'None'
+        	}else{
+        		imgElement.style.display = 'inline-block'
+	        	imgElement.src = firstFeature.get('photos')
+	        }
         	attrElement.innerHTML = firstFeature.get('attribution')
         	infoOverlay.setPosition(featureOver.getGeometry().getCoordinates())
 
-        	document.getElementById(firstFeature.get('taxonId')).scrollIntoView(
-		    		{ behavior: "smooth", block: "center", inline: "nearest" })
-        	pointerOverFeature = featureOver
+         	pointerOverFeature = featureOver
+        	let card = document.getElementById(firstFeature.get('taxonId'))
+        	card.parentNode.scrollTop = card.offsetTop - card.parentNode.offsetTop
 
-      	}
-	}); 
-
-	map.on('click', function(evt) {
-	    var feature = map.forEachFeatureAtPixel(evt.pixel,
-	      function(feature) {
-	        return feature;
-	      });
-	    if (feature) { //feature detected
-			if(pointerOverFeature && pointerOverFeature != feature){
-				imgElement.src = ""
-				pointerOverFeature.setStyle()
-			}
-			feature.setStyle(highlightIconStyles[category.toLowerCase()]);
-			let firstFeature = feature.get('features')[0]
-        	nameElement.innerHTML = firstFeature.get('name')
-        	obsElement.innerHTML = firstFeature.get('description')
-        	imgElement.src = firstFeature.get('photos')
-        	attrElement.innerHTML = firstFeature.get('attribution')
-        	infoOverlay.setPosition(feature.getGeometry().getCoordinates())
-
-        	document.getElementById(firstFeature.get('taxonId')).scrollIntoView(
-		    		{ behavior: "smooth", block: "center", inline: "nearest" })
-        	pointerOverFeature = feature
-
-      	}else if(pointerOverFeature){ //no feature on pointer
+      	}else if(pointerOverFeature && evt.type=='click'){ //no feature on pointer
       		pointerOverFeature.setStyle()
       		pointerOverFeature = null
       		imgElement.src = ""
       		infoOverlay.setPosition(null)
       	}
-	})
+	}
+
+	map.on('pointermove', showCards)
+	map.on('click', showCards)
 
 	map.on('moveend',(evt)=>{
 		if(document.getElementsByClassName('searching')[0].style.display == 'none'){
@@ -564,16 +572,7 @@ function loadMap(lat,long,z,cat) {
 		}
 	});
 
-	placeInput.addEventListener("change", (event) => {
-		if(event.target.value != ""){
-			if(event.target.value == event.target.list.firstChild.value){
-				let dataset = event.target.list.firstChild.dataset
-				let locWebMerc = ol.proj.fromLonLat([dataset.lng,dataset.lat])
-				map.getView().animate({zoom: 12},{center: locWebMerc},{zoom: 15})		
-				event.target.value = ""
-			}
-		}
-	});
+	placeInput.addEventListener("change", selectPlace);
 
 	category = cat ?? 'birds'
 

@@ -16,7 +16,6 @@ import os
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/4.2/howto/deployment/checklist/
 
@@ -25,10 +24,8 @@ SECRET_KEY =  os.environ["SECRET_KEY_BIRDS"]
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = False
-DEBUG_PROPAGATE_EXCEPTIONS = True
 
-ALLOWED_HOSTS = ['.localhost', '127.0.0.1', 'birds-in-your-area.up.railway.app']
-
+ALLOWED_HOSTS = ['.localhost', '127.0.0.1', 'athena', 'birds-in-your-area.up.railway.app']
 CSRF_TRUSTED_ORIGINS = ['https://birds-in-your-area.up.railway.app']
 # SECURE_HSTS_SECONDS = 3600
 # SECURE_HSTS_INCLUDE_SUBDOMAINS = True

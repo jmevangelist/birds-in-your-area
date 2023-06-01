@@ -6,12 +6,24 @@
 }
 
 .center-to-loc {
-  top: 65px;
   left: .5em;
+  top: 4em;
 }
 
 .ol-touch .center-to-loc {
-  top: 80px;
+  top: 4em;
+}
+
+.ol-rotate {
+  top: unset;
+  right: unset;
+  bottom: 0.5em;
+  left: 0.5em;
+
+}
+
+.ol-touch .ol-control button{
+  font-size: 1em;
 }
 
 .font-small {
@@ -24,9 +36,11 @@
 
 
 @media (max-width: 768px) {
-  .mobile-50 {height:50vh}
+  .mobile-70 {height:70vh}
+  .mobile-30 {height:30vh}
 }
 
 @media (min-width: 768px) {
-  .mobile-50 {height: 100vh}
+  .mobile-70 {height: 100vh}
+  .mobile-30 {height: 100vh}
 }

@@ -3,7 +3,7 @@
 {% load static %}
 <html>
 <head>
-  <meta content='maximum-scale=1.0, initial-scale=1.0, width=device-width' name='viewport'>
+  <meta content='initial-scale=1.0, width=device-width' name='viewport'>
   <title>Birds in your area</title>
   <link rel="icon" type="image/x-icon" href="{% static 'birds/bird.svg' %}"/>
   <script src="https://cdn.jsdelivr.net/npm/ol@v7.3.0/dist/ol.js"></script>
@@ -16,17 +16,14 @@
 </head>
 <body>
 
-<a id="load" href="{% url 'birds:find' %}"></a>
-<a id="get_obs" href="{% url 'birds:get_obs' %}" ></a>
-
-<div class="container-xxl h-100">
+<div class="container-fluid h-100">
 	<div class="row h-100">
-		<div class="col-md-9 order-md-2 mobile-50 p-0">
+		<div class="col-md-9 order-md-2 mobile-70 p-0">
 			<div class="position-relative">
-				<div id="map" class="map mobile-50" class="position-absolute z-0"></div>
+				<div id="map" class="map mobile-70" class="position-absolute z-0"></div>
 				<div style="display: none;">
-			      <div id="obs-info" class="card">
-			        <img id="obs-img" class="card-img-top" style="max-height: 15em; object-fit: cover"/>
+			      <div id="obs-info" class="card shadow-sm" style="max-width: 20em">
+			        <img id="obs-img" class="card-img-top" style="height: 15em; object-fit: cover"/>
 			  		<p class="card-text mb-0 text-center" style="font-size: xx-small;"><small class="text-body-secondary" id="obs-attribution"></small></p>
 			        <div class="card-body p-2 pt-0">
 			       		<p class="mb-0 fw-bold" style="font-size: smaller" id="obs-name"></p>
@@ -37,7 +34,7 @@
 				<div class="position-absolute z-1 top-0 m-2 w-50" style="left: 2em">
 					<div class="input-group input-group-sm" >
 						<input class="form-control" list="placesOptions" id="placesDataList" placeholder="Fly to...">
-						<button class="btn btn-primary" type="button"><i class="bi bi-compass"></i></button>
+						<button class="btn btn-primary" onClick="selectPlace()" type="button"><i class="bi bi-compass"></i></button>
 					</div>
 					<datalist id="placesOptions"></datalist>
 				</div>
@@ -65,9 +62,9 @@
 				</div>
 			</div>
 		</div>
-		<div class="col-md-3 order-md-1 mobile-50 overflow-scroll pt-1" data-link="{% url 'birds:side' %}" id="side-panel">
+		<div class="col-md-3 order-md-1 mobile-30 overflow-scroll pt-1" data-link="{% url 'birds:side' %}" id="side-panel">
 		</div>
-		<div class="col-md-3 order-md-1 mobile-50 searching" id="side-panel-spinner">
+		<div class="col-md-3 order-md-1 mobile-30 searching" id="side-panel-spinner">
 			<div class="d-flex min-vh-100 justify-content-center align-items-center">
 				<div class="spinner-grow spinner-grow text-primary" role="status">
 				  <span class="visually-hidden">Loading...</span>
@@ -91,22 +88,21 @@
     var obs_url = "{% url 'birds:get_obs' %}"
 </script>
 
-<script  src="{% static 'birds/colors.js' %}"></script>
-<script  src="{% static 'birds/main.js' %}"></script>
-<script >loadMap('{{lat}}', '{{lng}}', '{{z}}', '{{category}}')</script>
+<script src="{% static 'birds/colors.js' %}"></script>
+<script src="{% static 'birds/main.js' %}"></script>
+<script>loadMap('{{lat}}', '{{lng}}', '{{z}}', '{{category}}')</script>
 
- 
- 
 <footer class="d-flex flex-wrap justify-content-between align-items-center border-top">
     <div>
-    	<p class="mb-0"><small>	Sources: <a href="https://api.inaturalist.org">iNaturalist</a>+ 
+    	<p class="mb-0" style="font-size: smaller">
+    		Sources: <a href="https://api.inaturalist.org">iNaturalist</a>+ 
     		<a href="https://openlayers.org/">Openlayers</a>+
     		<a href="https://getbootstrap.com/">Bootstrap</a>+
     		<a href="https://fontawesome.com/">Font Awesome</a>+
     		<a href="https://commons.wikimedia.org/wiki/File:FP_Mushroom_icon.svg">Maxxl²</a>
-    	</small></p>
+    	</p>
 	</div>
     <div>
-      <p class="col mb-0 text-body-secondary text-md-end text-start"><small>Made by jmevangelist</small></p>
+      <p class="col mb-0 text-body-secondary text-md-end text-start" style="font-size: smaller;">Made by jmevangelist</p>
     </div>
 </footer>

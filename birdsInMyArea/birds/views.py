@@ -67,13 +67,8 @@ def get_obs(request):
 	total_results = response.json()['total_results']
 	obs = response.json()['results']
 
-	species_id = {}
-
-
 	obs_by_species = {}
 
-	for key,value in enumerate(obs):
-		species_id[value['taxon']['min_species_taxon_id']] = value['taxon'].get('preferred_common_name',value['taxon'].get('name','Bird'))
 
 	def key_func(k):
 		return k['taxon']['min_species_taxon_id']
@@ -94,8 +89,7 @@ def get_obs(request):
 	context = {
 		'total_results': total_results,
 		'page': page,
-		'obs_by_species': obs_by_species,
-		'species_id': species_id
+		'obs_by_species': obs_by_species
 	}
 
 	return JsonResponse(context)
