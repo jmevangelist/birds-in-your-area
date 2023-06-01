@@ -1,0 +1,9 @@
+bin/
+static/
+lib/
+lib64/
+pyvenv.cfg
+include/
+.sqlite3
+.bak
+lib64

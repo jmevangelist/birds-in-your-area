@@ -1,0 +1,32 @@
+{% load static %}
+{% if bird_list %}
+
+	{% for bird in bird_list %}
+	
+	<div class="card mb-2 species_card" id="{{bird.taxon.id}}">
+		<div class="row g-0">
+		<div class="col-4 col-md-12">
+		  <img src="{{bird.taxon.default_photo.medium_url}}" class="card-img-top" alt="...">
+		   <div class="card-img-overlay" data-type="species_card" data-taxon-id="{{bird.taxon.id}}" data-id="{{forloop.counter}}" data-sightings="{{bird.sightings}}" data-common-name="{{bird.taxon.preferred_common_name}}" style="padding: 0" >
+		   </div>
+		</div>
+		<div class="col-8 col-md-12">
+		  <div class="card-body p-1">
+		    <h6 class="card-title mb-0">{{bird.taxon.preferred_common_name}}</h6>
+		    <p class="mb-0" ><small><em>{{bird.taxon.name}}</em></small></p>
+		    <p class="mb-0"><small>{{bird.count}} sighting{% if bird.count > 1 %}s{% endif %}</small></p>
+		  </div>
+		  <figcaption class="figure-caption text-end me-1" style="font-size: xx-small;">{{bird.taxon.default_photo.attribution}}</figcaption>
+		</div>
+		</div>
+	</div>
+
+	{% endfor %}
+
+{% else %}
+    <h5>No {{category}} :(</h5>
+{% endif %}
+
+
+
+
