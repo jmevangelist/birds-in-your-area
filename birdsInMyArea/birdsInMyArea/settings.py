@@ -26,7 +26,7 @@ SECRET_KEY =  os.environ["SECRET_KEY_BIRDS"]
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = False
 
-ALLOWED_HOSTS = ['.localhost', '127.0.0.1', '[::1]', 'birds-in-your-area.up.railway.app']
+ALLOWED_HOSTS = ['.localhost', '127.0.0.1', 'birds-in-your-area.up.railway.app']
 
 CSRF_TRUSTED_ORIGINS = ['https://birds-in-your-area.up.railway.app']
 # SECURE_HSTS_SECONDS = 3600
