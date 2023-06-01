@@ -2,6 +2,7 @@
 iNaturalist observation map for casual birders and critter enjoyers
 
 ### Built With
-*Django
-*Bootstrap
-*OpenLayers
+* Django
+* Bootstrap
+* OpenLayers
+
