@@ -25,7 +25,7 @@ SECRET_KEY =  os.environ["SECRET_KEY_BIRDS"]
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = False
-DEBUG_PROPAGATE_EXCEPTIONS = True
+# DEBUG_PROPAGATE_EXCEPTIONS = True
 
 ALLOWED_HOSTS = ['.localhost', '127.0.0.1', 'birds-in-your-area.up.railway.app']
 
@@ -130,7 +130,7 @@ USE_TZ = True
 
 STATIC_URL = '/static/'
 STATIC_ROOT = os.path.join(BASE_DIR, 'static')
-STATICFILES_STORAGE="whitenoise.storage.CompressedManifestStaticFilesStorage"
+STATICFILES_STORAGE="whitenoise.storage.CompressedStaticFilesStorage"
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/4.2/ref/settings/#default-auto-field
