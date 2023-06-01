@@ -25,7 +25,7 @@ SECRET_KEY =  os.environ["SECRET_KEY_BIRDS"]
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = False
-# DEBUG_PROPAGATE_EXCEPTIONS = True
+DEBUG_PROPAGATE_EXCEPTIONS = True
 
 ALLOWED_HOSTS = ['.localhost', '127.0.0.1', 'birds-in-your-area.up.railway.app']
 
