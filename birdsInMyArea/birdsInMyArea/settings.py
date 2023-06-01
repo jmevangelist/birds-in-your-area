@@ -149,7 +149,7 @@ if os.getenv('DJANGO_DEVELOPMENT') == 'True': #os variables are strings
     # SECURITY WARNING: keep the secret key used in production secret!
     SECRET_KEY = 'django-insecure-n-qy&(*!+xqw@_&-a*a^@mqjs%ojav3ctxl%wybpew24gnghl&'
     DEBUG = True
-    ALLOWED_HOSTS = []
+    ALLOWED_HOSTS = ['*']
 
     SECURE_HSTS_SECONDS = 0
     SECURE_HSTS_INCLUDE_SUBDOMAINS = False
