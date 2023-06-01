@@ -1,0 +1,32 @@
+#info {
+  position: absolute;
+  height: 1px;
+  width: 1px;
+  z-index: 100;
+}
+
+.center-to-loc {
+  top: 65px;
+  left: .5em;
+}
+
+.ol-touch .center-to-loc {
+  top: 80px;
+}
+
+.font-small {
+  font-size: x-small;
+}
+
+#map {
+  width: 100%; 
+}
+
+
+@media (max-width: 768px) {
+  .mobile-50 {height:50vh}
+}
+
+@media (min-width: 768px) {
+  .mobile-50 {height: 100vh}
+}
