@@ -26,7 +26,8 @@ SECRET_KEY =  os.environ["SECRET_KEY_BIRDS"]
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = False
 
-ALLOWED_HOSTS = ['.localhost', '127.0.0.1', '[::1]']
+ALLOWED_HOSTS = ['.localhost', '127.0.0.1', '[::1]', 'birds-in-your-area.up.railway.app']
+
 
 # SECURE_HSTS_SECONDS = 3600
 # SECURE_HSTS_INCLUDE_SUBDOMAINS = True
@@ -34,6 +35,7 @@ ALLOWED_HOSTS = ['.localhost', '127.0.0.1', '[::1]']
 # SESSION_COOKIE_SECURE = True 
 # SECURE_HSTS_PRELOAD = True 
 # CSRF_COOKIE_SECURE = True 
+
 # Application definition
 
 INSTALLED_APPS = [
