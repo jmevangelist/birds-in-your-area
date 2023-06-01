@@ -21,7 +21,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # See https://docs.djangoproject.com/en/4.2/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY =  'django-insecure-n-qy&(*!+xqw@_&-a*a^@mqjs%ojav3ctxl%wybpew24gnghl&' #os.environ["SECRET_KEY_BIRDS"]
+SECRET_KEY =  os.environ["SECRET_KEY_BIRDS"]
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = False
@@ -55,6 +55,7 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    'whitenoise.middleware.WhiteNoiseMiddleware',
 ]
 
 ROOT_URLCONF = 'birdsInMyArea.urls'
@@ -140,7 +141,7 @@ CACHES = {
 }
 
 if os.getenv('DJANGO_DEVELOPMENT') == 'True': #os variables are strings
-    print('dev variables')
+
     # SECURITY WARNING: keep the secret key used in production secret!
     SECRET_KEY = 'django-insecure-n-qy&(*!+xqw@_&-a*a^@mqjs%ojav3ctxl%wybpew24gnghl&'
 
