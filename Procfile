@@ -1,1 +1,0 @@
-web: cd birdsInMyArea && python manage.py collectstatic && gunicorn birdsInMyArea.wsgi
