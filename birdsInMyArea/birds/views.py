@@ -5,7 +5,7 @@ from itertools import groupby
 from .categories import iconicTaxa
 from . import defaults
 from django.views.decorators.cache import cache_page
-
+import re
 import requests 
 
 
@@ -53,7 +53,7 @@ def get_obs(request):
 		'swlat': bbox[1],
 		'swlng': bbox[0],
 		'quality_grade': 'research',
-		'iconic_taxa': iconicTaxa[category],
+		'iconic_taxa': iconicTaxa.get(category),
 		'per_page': 200,
 		'page': page
 	}
@@ -77,7 +77,7 @@ def get_obs(request):
 
 	for key,value in groupby(obs, key_func):
 		list_of_obs = map(lambda o: {'location': o['geojson']['coordinates'],
-			'time_observed_at': o['time_observed_at'],
+			'time_observed_at': o['time_observed_at'] or o['observed_on_string'],
 			'uri': o['uri'],
 			'observer': o['user']['name'] or o['user']['login'] or 'anonymous',
 			'photos': o['observation_photos'][0]['photo']['url'],
@@ -119,12 +119,12 @@ def side(request):
 	api_url = "https://api.inaturalist.org/v1/observations/species_counts"
 	response = requests.get(api_url,params=payload)
 	if response.status_code != requests.codes.ok:
-		context = {
-			"bird_list": []
-		}
-		return render(request,"birds/side.html",context)
+		return render(request,"birds/side.html",{"bird_list": []})
 	
 	species = response.json()['results']
+
+	for key,value in enumerate(species):
+		species[key]['taxon']['default_photo']['attribution'] = re.sub(r', uploaded by.*','',species[key]['taxon']['default_photo']['attribution'])
 		
 	context = {
 		"bird_list": species,

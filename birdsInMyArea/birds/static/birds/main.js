@@ -160,6 +160,13 @@ function clusterStyle(feature) {
     return style;
 }
 
+const geolocation = new ol.Geolocation({
+  trackingOptions: {
+    enableHighAccuracy: true,
+  },
+  projection: view.getProjection(),
+});
+
 class CenterToLocControl extends ol.control.Control {
 
   constructor(opt_options) {
@@ -182,28 +189,32 @@ class CenterToLocControl extends ol.control.Control {
 
   handleCenterToLoc() {
 
-    if (navigator.geolocation) {
-	    navigator.geolocation.getCurrentPosition(position => {
-			let locWebMerc = ol.proj.fromLonLat([position.coords.longitude,position.coords.latitude])
-			this.getMap().getView().animate({center: locWebMerc},{zoom: 15})
-	    });
-	} else {
-	    console.log("Geolocation is not supported by this browser.")
-	}
+  	geolocation.setTracking(true)
+  	let controlmap = this.getMap()
+  	geolocation.once('change:position', function () {
+	  let locWebMerc = geolocation.getPosition()
+	  controlmap.getView().animate({center: locWebMerc},{zoom: 15} )
+	});
 
   }
 
 }
 
-async function searchPlaces(q){
-	let url = "https://nominatim.openstreetmap.org/search?format=geojson&q=" + q 
+async function searchPlaces(input){
+
+	let url = "https://nominatim.openstreetmap.org/search?format=geojson&q=" + input.value
 	const response = await fetch(url)
 	if(!response.ok){
 		throw new Error('Failed to load: '+ url)
 	}
 
-
 	let places = await response.json()
+
+	if(places.features.length){
+		input.classList.remove('is-invalid')
+	}else{
+		input.classList.add('is-invalid')
+	}
 
 	let placesOptions = document.querySelector('#placesOptions')
 	placesOptions.innerHTML = ""
@@ -218,6 +229,35 @@ async function searchPlaces(q){
 	placesOptions.innerHTML = strOptions
 
 }
+
+function selectPlace(event){
+
+	let element
+	if(event === null || event === undefined){
+		element = document.querySelector("#placesDataList")
+	}else if(event.target.value != ""){
+		element = event.target
+	}
+
+	if(element.list.firstChild){
+		let dataset = element.list.firstChild.dataset
+		let locWebMerc = ol.proj.fromLonLat([dataset.lng,dataset.lat])
+		map.getView().animate({zoom: 12},{center: locWebMerc},{zoom: 13})		
+		element.value = ""
+	}
+
+}
+
+let placeInput = document.querySelector("#placesDataList")
+placeInput.addEventListener("input", (event) => {
+	if(event.target.value.length > 2){
+		searchPlaces(event.target).catch(e=>{
+			console.log(e) 
+		})
+	}
+});
+
+placeInput.addEventListener("change", selectPlace);
 
 function createFeatures(coords,color,taxonId){
 
@@ -359,7 +399,6 @@ async function getObs(url){
 async function searchForBirds(category,extent) {
 
 	//get all species
-
 	let url = document.getElementById('side-panel').dataset.link + '?' + new URLSearchParams({
 		'extent': extent,
 		'category': category
@@ -406,9 +445,7 @@ function pickCategory(cat){
 
 function search() {
 
-	let overlays = map.getOverlays()
-	if(overlays.getLength()){overlays.item(0).setPosition(null)}
-
+	//show spinners
 	document.getElementById('side-panel').style.display = 'none'
 	document.getElementById('search').style.visibility = 'hidden';
 
@@ -419,6 +456,10 @@ function search() {
 
 	document.getElementById('side-panel').innerHTML = ""
 
+	//clear map
+	let overlays = map.getOverlays()
+	if(overlays.getLength()){overlays.item(0).setPosition(null)}
+
 	let r = map.getLayers().getLength()-1
 	while(r>0){
 		map.getLayers().pop()
@@ -426,14 +467,19 @@ function search() {
 	}
 	SPECIES_LAYERS = {}
 
+	//where are you? and how big of an area are you looking at?
 	let coord = ol.proj.toLonLat(view.getCenter())
 	let zoom = view.getZoom()
 
 	var extent = map.getView().calculateExtent(map.getSize());
 	extent = ol.proj.transformExtent(extent, 'EPSG:3857', 'EPSG:4326');
 	extent = extent.map(x => Math.round((x + Number.EPSILON) * 100000) / 100000)
+	coord = coord.map(x => Math.round((x + Number.EPSILON) * 100000)/ 100000)
+	zoom = Math.round((zoom + Number.EPSILON) * 100)/100
 
+	//search for birds on your location
 	searchForBirds(category,extent).then(r => {
+		//successful search: push link to history and set cookies
 		url = load_url + '/' + category.toLowerCase() + '/@' + coord[1] + ',' + coord[0] + ',' + zoom + 'z'
 		window.history.pushState({'coord': coord, 'zoom': zoom},"", url)
 		document.cookie = "lat="+coord[1]+";path=/; SameSite=Strict;" 
@@ -441,6 +487,7 @@ function search() {
 		document.cookie = "z="+zoom + ";path=/; SameSite=Strict;"
 		document.cookie = "category=" + category + ";path=/; SameSite=Strict;"
 	}).catch(e => {
+		//something went wrong
 		console.log(e)
 		document.getElementById('search').style.visibility = 'visible'
 		document.getElementById('side-panel-spinner').style.display = 'none'
@@ -450,27 +497,10 @@ function search() {
 	})
 }
 
-function selectPlace(event){
-
-	let element
-	if(event === null || event === undefined){
-		element = document.querySelector("#placesDataList")
-	}else if(event.target.value != ""){
-		element = event.target
-	}
-
-	if(element.list.firstChild){
-		let dataset = element.list.firstChild.dataset
-		let locWebMerc = ol.proj.fromLonLat([dataset.lng,dataset.lat])
-		map.getView().animate({zoom: 12},{center: locWebMerc},{zoom: 15})		
-		element.value = ""
-	}
-
-}
-
 function loadMap(lat,long,z,cat) {
+	//loads Map and map related elements
 
-	console.log('loading map', lat, long, z )
+	console.log('loading map', lat, long, z, cat )
 
 	if(!lat && !long){
 		console.log('setting to default location')
@@ -520,7 +550,11 @@ function loadMap(lat,long,z,cat) {
 	function showCards(evt){
 
 		const featureOver = map.forEachFeatureAtPixel(evt.pixel, (feature) => {
+			if(feature.get('features')){
 				return feature;
+			}else{
+				return null
+			}
 		}); 
 
 		if (featureOver) { //feature detected
@@ -563,24 +597,37 @@ function loadMap(lat,long,z,cat) {
 	})
 
 
-	let placeInput = document.querySelector("#placesDataList")
-	placeInput.addEventListener("input", (event) => {
-		if(event.target.value.length > 2){
-			searchPlaces(event.target.value).catch(e=>{
-				console.log(e) 
-			})
-		}
+	const positionFeature = new ol.Feature();
+	positionFeature.setStyle(
+	  new ol.style.Style({
+	    image: new ol.style.Circle({
+	      radius: 6,
+	      fill: new ol.style.Fill({
+	        color: '#3399CC',
+	      }),
+	      stroke: new ol.style.Stroke({
+	        color: '#fff',
+	        width: 2,
+	      }),
+	    }),
+	  })
+	);
+
+	geolocation.on('change:position', function () {
+	  const coordinates = geolocation.getPosition();
+	  positionFeature.setGeometry(coordinates ? new ol.geom.Point(coordinates) : null);
 	});
 
-	placeInput.addEventListener("change", selectPlace);
+	new ol.layer.Vector({
+	  map: map,
+	  source: new ol.source.Vector({
+	    features: [positionFeature],
+	  }),
+	});
 
 	category = cat ?? 'birds'
 
-	var init_load = true
-	map.on('loadend',(evt)=>{
-		if(init_load){
-			search()
-			init_load = false
-		}
+	map.once('loadend',(evt)=>{
+		search()
 	})
 }

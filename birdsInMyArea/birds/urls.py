@@ -1,7 +1,6 @@
 from django.urls import path, re_path
 from django.conf.urls import handler404, handler500
 
-
 from . import views
 
 app_name = "birds"
