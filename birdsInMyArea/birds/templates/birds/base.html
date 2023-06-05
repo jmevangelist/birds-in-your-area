@@ -9,10 +9,9 @@
   <script src="https://cdn.jsdelivr.net/npm/ol@v7.3.0/dist/ol.js"></script>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/ol@v7.3.0/ol.css">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
-  {% load bootstrap5 %}
-  {% bootstrap_javascript %}
-  {% bootstrap_css %}
-  <link rel="stylesheet" href="{% static 'birds/style.css' %}"/>
+ <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-9ndCyUaIbzAi2FUVXJi0CjmCapSmO7SnpJef0486qhLnuZ2cdeRhO02iuK6FUUVM" crossorigin="anonymous">
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js" integrity="sha384-geWF76RCwLtnZ8qwWowPQNguL3RmwHVBC9FhGdlKrxdiJJigb/j/68SIy3Te4Bkz" crossorigin="anonymous"></script>
+ <link rel="stylesheet" href="{% static 'birds/style.css' %}"/>
 </head>
 <body>
 
@@ -25,13 +24,19 @@
 			      <div id="obs-info" class="card shadow-sm" style="max-width: 20em">
 			        <img id="obs-img" class="card-img-top" style="height: 15em; object-fit: cover"/>
 			  		<p class="card-text mb-0 text-center" style="font-size: xx-small;"><small class="text-body-secondary" id="obs-attribution"></small></p>
-			        <div class="card-body p-2 pt-0">
-			       		<p class="mb-0 fw-bold" style="font-size: smaller" id="obs-name"></p>
-			       		<p class="mb-0" style="font-size: x-small" id="observer"></p>
+			  		<div class="card-img-overlay p-1">
+			  			<button id="obs-button" class="btn btn-outline-primary btn-sm position-absolute" style="right: 0.5em"><i class="bi bi-chevron-double-right"></i></button>
+			  		</div>
+			        <div class="card-body p-2 pt-0 row">
+			        	<div class="col">
+				       		<p class="mb-0 fw-bold" style="font-size: smaller" id="obs-name"></p>
+				       		<p class="mb-0" style="font-size: x-small" id="observer"></p>
+				       	</div>
+			       		<button id="obs-button-copyright" class="col-2 btn btn-primary btn-sm position-relative"><i class="bi bi-chevron-double-right"></i></button>
 			       	</div>
 			      </div>
 			    </div>
-				<div class="position-absolute z-1 top-0 m-2 w-50" style="left: 2em">
+				<div class="position-absolute z-1 top-0 m-2 w-50" id="searchPlaces" style="left: 2em">
 					<div class="input-group input-group-sm" >
 						<input class="form-control" list="placesOptions" id="placesDataList" placeholder="Fly to...">
 						<button class="btn btn-primary" onClick="selectPlace()" type="button"><i class="bi bi-compass"></i></button>

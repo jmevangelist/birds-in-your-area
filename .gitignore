@@ -7,3 +7,6 @@ include/
 .bak
 lib64
 __pycache__/
+birdsInMyArea/static/
+cert.pem
+key.pem

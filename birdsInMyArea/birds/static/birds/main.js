@@ -1,7 +1,11 @@
 const map = new ol.Map({ controls: ol.control.defaults.defaults({attribution: false}) })
 
+var controller
+
 var SPECIES_LAYERS = {} 
 var category = 'birds'
+
+const blankStyle = new ol.style.Style({})
 
 const view = new ol.View({
     center: [0, 0],
@@ -160,12 +164,6 @@ function clusterStyle(feature) {
     return style;
 }
 
-const geolocation = new ol.Geolocation({
-  trackingOptions: {
-    enableHighAccuracy: true,
-  },
-  projection: view.getProjection(),
-});
 
 class CenterToLocControl extends ol.control.Control {
 
@@ -175,27 +173,145 @@ class CenterToLocControl extends ol.control.Control {
     const button = document.createElement('button');
     button.innerHTML = '<i class="bi bi-geo-fill"></i>';
 
+	const input = document.createElement('input')
+	input.type = 'checkbox'
+	input.className = "btn-check"
+	input.id = 'btn-check-outlined'
+	const label = document.createElement('label')
+	label.innerHTML = '<i class="bi bi-geo-fill"></i>'
+	label.className = "btn btn-outline-secondary btn-sm"
+	label.setAttribute('for',"btn-check-outlined")
+
     const element = document.createElement('div');
     element.className = 'center-to-loc ol-unselectable ol-control';
-    element.appendChild(button);
+    element.appendChild(input)
+    element.appendChild(label)
+
+    const geolocationControl = new ol.Geolocation({
+	  trackingOptions: {
+	    enableHighAccuracy: true,
+	  },
+	  projection: view.getProjection(),
+	});
+
+    const positionFeatureControl = new ol.Feature();
+
+    const orientationStyle = new ol.style.Icon({
+	    src: '/static/birds/arrow.svg',
+	    crossOrigin: 'anonymous',
+	    scale: 0.05,
+	    opacity: 1,
+	    rotation: -(Math.PI/4)
+	})
+
+    const Style = new ol.style.Style({
+    	image: new ol.style.Circle({
+		      radius: 6,
+		      fill: new ol.style.Fill({
+		        color: '#3399CC',
+		      }),
+		      stroke: new ol.style.Stroke({
+		        color: '#fff',
+		        width: 2,
+		      }),
+		    }) 
+    })
+
+    const geoLayer = new ol.layer.Vector({
+	  source: new ol.source.Vector({
+	    features: [positionFeatureControl],
+	  }),
+	  style: Style
+	});
+
+	window.addEventListener('deviceorientationabsolute',function(){
+		Style.setImage(orientationStyle)
+	},{once: true})
+
+	let isTracking = false 
+	geolocationControl.on('change:tracking', function(){
+		if(geolocationControl.getTracking()){
+			isTracking = true 
+			if(label.classList.contains('btn-outline-danger')){
+				label.classList.replace('btn-outline-danger','btn-outline-primary')
+			}
+			if(label.classList.contains('btn-outline-secondary')){
+				label.classList.replace('btn-outline-secondary','btn-outline-primary')
+			}
+		}else{
+			isTracking = false
+			if(label.classList.contains('btn-outline-primary')){
+				label.classList.replace('btn-outline-primary','btn-outline-secondary')
+			}
+			positionFeatureControl.setStyle(blankStyle);
+		}
+	})
+	
+	geolocationControl.on('change:position', function () {
+	  const coordinates = geolocationControl.getPosition();
+	  positionFeatureControl.setStyle(null)
+	  positionFeatureControl.setGeometry(coordinates ? new ol.geom.Point(coordinates) : null);
+	});
+
+	geolocationControl.on('error',function(e){
+		if(e.code = 1){
+			isTracking = false 
+			label.classList.remove('btn-outline-primary')
+			label.classList.add('btn-outline-danger')
+			positionFeatureControl.setStyle(blankStyle)
+		}
+	})
+	
 
     super({
       element: element,
       target: options.target,
     });
 
-    button.addEventListener('click', this.handleCenterToLoc.bind(this), false);
+	input.addEventListener('change', this.handleCenterToLoc.bind(this), false)
+	window.addEventListener("deviceorientationabsolute", this.handleRotation.bind(this), false)
+	
+	this.geolocation = geolocationControl
+	this.geoLayer = geoLayer
+	this.orientationStyle = orientationStyle
+	this.positionFeature = positionFeatureControl
+	this.isTracking = isTracking
+
   }
 
   handleCenterToLoc() {
+  	if(this.element.firstChild.checked){
+  		this.geoLayer.setMap(this.getMap())
+	  	if(controller){ controller.abort() }
+	  	this.geolocation.setTracking(true)
+	  	let controlmap = this.getMap()
+	  	let geolocation = this.geolocation
+	  	this.geolocation.once('change:position', function () {
+		  let locWebMerc = geolocation.getPosition()
+		  controlmap.getView().animate({center: locWebMerc},{zoom: 17} )
+		});
+	  }else{
+	  	this.geolocation.setTracking(false)
+	  	this.positionFeature.setStyle(blankStyle)
+	  }
 
-  	geolocation.setTracking(true)
-  	let controlmap = this.getMap()
-  	geolocation.once('change:position', function () {
-	  let locWebMerc = geolocation.getPosition()
-	  controlmap.getView().animate({center: locWebMerc},{zoom: 15} )
-	});
+  }
 
+  handleRotation(event){
+  	if(this.isTracking){
+	  	let rotation = -(event.alpha * Math.PI/180) - (Math.PI/4)
+	  	let viewRotation = this.getMap().getView().getRotation()
+		this.orientationStyle.setRotation(rotation+viewRotation)
+		this.positionFeature.setStyle(null)
+	}
+  }
+
+  updateRotation(update){
+  	if(this.isTracking){
+	  	let rotation = this.orientationStyle.getRotation()
+	  	this.orientationStyle.setRotation(rotation-update)
+		this.positionFeature.setStyle(null)
+	}
   }
 
 }
@@ -242,6 +358,7 @@ function selectPlace(event){
 	if(element.list.firstChild){
 		let dataset = element.list.firstChild.dataset
 		let locWebMerc = ol.proj.fromLonLat([dataset.lng,dataset.lat])
+		if(controller){ controller.abort() }
 		map.getView().animate({zoom: 12},{center: locWebMerc},{zoom: 13})		
 		element.value = ""
 	}
@@ -357,8 +474,8 @@ function setPanelListeners(){
 	);	
 }
 
-async function getObs(url){
-	let obs_data = await fetch(url);
+async function getObs(url,signal){
+	let obs_data = await fetch(url, {signal});
 	if (!obs_data.ok){
 		throw new Error('Failed to load: ' + url + "\nStatus: " + obs_data.status) 
 	}
@@ -404,7 +521,9 @@ async function searchForBirds(category,extent) {
 		'category': category
 	})
 
-	const response = await fetch(url);
+	controller = new AbortController();
+	let signal = controller.signal
+	const response = await fetch(url, {signal});
 
 	if(!response.ok){
 		throw new Error('Failed to load: ' + url + "\nStatus: " + response.status) 
@@ -422,12 +541,12 @@ async function searchForBirds(category,extent) {
 	let page = 1
 	url = obs_url + '?category=' + category + '&extent=' + extent +'&page=' 
 
-	let total_results = await getObs(url+page)
+	let total_results = await getObs(url+page,signal)
 
 	let getObsArr = []
 	if(total_results > 200){
 		for(page = 2; page<= Math.ceil(total_results/200); page++ ){
-			getObsArr.push(getObs(url+page))
+			getObsArr.push(getObs(url+page,signal))
 		}
 	}
 
@@ -487,8 +606,8 @@ function search() {
 		document.cookie = "z="+zoom + ";path=/; SameSite=Strict;"
 		document.cookie = "category=" + category + ";path=/; SameSite=Strict;"
 	}).catch(e => {
-		//something went wrong
-		console.log(e)
+		//something went wrong or fetch is aborted
+		//console.log(e)
 		document.getElementById('search').style.visibility = 'visible'
 		document.getElementById('side-panel-spinner').style.display = 'none'
 		document.getElementById('side-panel').style.display = 'inline-block'
@@ -499,7 +618,6 @@ function search() {
 
 function loadMap(lat,long,z,cat) {
 	//loads Map and map related elements
-
 	console.log('loading map', lat, long, z, cat )
 
 	if(!lat && !long){
@@ -518,7 +636,16 @@ function loadMap(lat,long,z,cat) {
 
 	map.setTarget('map')
 	map.setView(view)
-	map.addControl(new CenterToLocControl())
+
+	locationControl = new CenterToLocControl()
+	map.addControl(locationControl)
+
+	let viewRotationPrev = 0
+	view.on('change:rotation',function(){
+		let r = view.getRotation()
+		locationControl.updateRotation(viewRotationPrev-r)
+		viewRotationPrev = r
+	})
 
 	const attribution = new ol.control.Attribution({
 		collapsible: true,
@@ -532,6 +659,8 @@ function loadMap(lat,long,z,cat) {
 	const nameElement = document.getElementById('obs-name');
 	const attrElement = document.getElementById('obs-attribution')
 	const obsElement = document.getElementById('observer')
+	const obsButton = document.getElementById('obs-button')
+	const obsButtonCopyright = document.getElementById('obs-button-copyright')
 
 	infoElement.addEventListener('pointermove', function(e){
    		e.stopPropagation();
@@ -547,6 +676,33 @@ function loadMap(lat,long,z,cat) {
 	map.addOverlay(infoOverlay);
 
 	let pointerOverFeature = null;
+	nextIndex = 1
+	function nextObs(){
+		next = pointerOverFeature.get('features')[nextIndex]
+		if(next){
+			imgElement.src = ""
+			nameElement.innerHTML = next.get('name')
+	    	obsElement.innerHTML = next.get('description')
+	    	if(next.get('photos') == ''){
+	    		imgElement.style.display = 'None'
+	    		obsButtonCopyright.style.display = 'inline-block'
+	    		obsButton.style.visibility = 'hidden'
+	    	}else{
+	    		imgElement.style.display = 'inline-block'
+	        	imgElement.src = next.get('photos')
+	        	obsButtonCopyright.style.display = 'None'
+	        	obsButton.style.visibility = 'visible'
+	        }
+	    	attrElement.innerHTML = next.get('attribution')
+	    	nextIndex++
+	    }
+	    nextIndex = nextIndex % pointerOverFeature.get('features').length
+	}
+
+
+	obsButton.addEventListener('click',nextObs)
+	obsButtonCopyright.addEventListener('click',nextObs)
+
 	function showCards(evt){
 
 		const featureOver = map.forEachFeatureAtPixel(evt.pixel, (feature) => {
@@ -561,6 +717,7 @@ function loadMap(lat,long,z,cat) {
 			if(pointerOverFeature && pointerOverFeature != featureOver){
 				imgElement.src = ""
 				pointerOverFeature.setStyle()
+				nextIndex = 1
 			}
 			featureOver.setStyle(highlightIconStyles[category.toLowerCase()]);
 			let firstFeature = featureOver.get('features')[0]
@@ -573,6 +730,20 @@ function loadMap(lat,long,z,cat) {
 	        	imgElement.src = firstFeature.get('photos')
 	        }
         	attrElement.innerHTML = firstFeature.get('attribution')
+        	if(featureOver.get('features').length > 1){
+        		if(firstFeature.get('photos') == ''){
+        			obsButton.style.visibility = 'hidden'
+        			obsButtonCopyright.style.display = 'inline-block'
+        		}else{
+	        		obsButton.style.visibility = 'visible'
+        			obsButtonCopyright.style.display = 'None'
+	        	}
+        	}else{
+        		obsButton.style.visibility = 'hidden'
+        		obsButtonCopyright.style.display = 'None'
+        	}
+
+
         	infoOverlay.setPosition(featureOver.getGeometry().getCoordinates())
 
          	pointerOverFeature = featureOver
@@ -596,38 +767,10 @@ function loadMap(lat,long,z,cat) {
 		}
 	})
 
-
-	const positionFeature = new ol.Feature();
-	positionFeature.setStyle(
-	  new ol.style.Style({
-	    image: new ol.style.Circle({
-	      radius: 6,
-	      fill: new ol.style.Fill({
-	        color: '#3399CC',
-	      }),
-	      stroke: new ol.style.Stroke({
-	        color: '#fff',
-	        width: 2,
-	      }),
-	    }),
-	  })
-	);
-
-	geolocation.on('change:position', function () {
-	  const coordinates = geolocation.getPosition();
-	  positionFeature.setGeometry(coordinates ? new ol.geom.Point(coordinates) : null);
-	});
-
-	new ol.layer.Vector({
-	  map: map,
-	  source: new ol.source.Vector({
-	    features: [positionFeature],
-	  }),
-	});
-
 	category = cat ?? 'birds'
 
 	map.once('loadend',(evt)=>{
 		search()
 	})
 }
+

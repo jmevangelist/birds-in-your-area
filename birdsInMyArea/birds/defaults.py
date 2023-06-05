@@ -1,4 +1,4 @@
-lat = 14.46
-lng = 121.00705
+lat = 49.21272
+lng = -2.13264
 z = 12
 category = 'birds'

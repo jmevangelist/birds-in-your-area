@@ -1,0 +1,31 @@
+#!/bin/bash
+
+ROOT=$(dirname $(realpath $0))
+
+GUNICORN_ARGS=(
+	--keyfile "${ROOT}/key.pem"
+	--certfile "${ROOT}/cert.pem"
+	--bind "[::]:8000"
+)
+
+DJANGO_DEVELOPMENT=${DJANGO_DEVELOPMENT:-"False"}
+export SECRET_KEY_BIRDS=$(gpg --gen-random 1 80| base64)
+
+while [[ $# -gt 0 ]]; do
+	case "$1" in 
+		--dev)
+			DJANGO_DEVELOPMENT="True"
+			;;
+	esac
+	shift
+done
+
+if [[ x"$DJANGO_DEVELOPMENT" = x"False" ]]; then 
+	python "${ROOT}/birdsInMyArea/manage.py" collectstatic
+else
+	GUNICORN_ARGS+=( --reload )
+	export DJANGO_DEVELOPMENT
+fi
+
+cd "${ROOT}/birdsInMyArea"
+gunicorn "${GUNICORN_ARGS[@]}" "birdsInMyArea.wsgi"

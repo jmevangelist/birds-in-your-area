@@ -1,13 +1,14 @@
-#info {
-  position: absolute;
-  height: 1px;
-  width: 1px;
-  z-index: 100;
+#obs-button-copyright{
+  height: 2em;
+  top:1em;
+  right: 0.5em;
+  max-width: 2.5em;  
 }
 
 .center-to-loc {
   left: .5em;
   top: 4em;
+  background-color: white; 
 }
 
 .ol-touch .center-to-loc {
@@ -44,4 +45,3 @@
   .mobile-70 {height: 100vh}
   .mobile-30 {height: 100vh}
 }
-
