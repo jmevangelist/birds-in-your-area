@@ -228,10 +228,10 @@ class CenterToLocControl extends ol.control.Control {
 		Style.setImage(orientationStyle)
 	},{once: true})
 
-	let isTracking = false 
+	const isTracking = {enabled: true} 
 	geolocationControl.on('change:tracking', function(){
 		if(geolocationControl.getTracking()){
-			isTracking = true 
+			isTracking.enabled = true 
 			if(label.classList.contains('btn-outline-danger')){
 				label.classList.replace('btn-outline-danger','btn-outline-primary')
 			}
@@ -239,7 +239,7 @@ class CenterToLocControl extends ol.control.Control {
 				label.classList.replace('btn-outline-secondary','btn-outline-primary')
 			}
 		}else{
-			isTracking = false
+			isTracking.enabled = false
 			if(label.classList.contains('btn-outline-primary')){
 				label.classList.replace('btn-outline-primary','btn-outline-secondary')
 			}
@@ -255,7 +255,7 @@ class CenterToLocControl extends ol.control.Control {
 
 	geolocationControl.on('error',function(e){
 		if(e.code = 1){
-			isTracking = false 
+			isTracking.enabled = false 
 			label.classList.remove('btn-outline-primary')
 			label.classList.add('btn-outline-danger')
 			positionFeatureControl.setStyle(blankStyle)
@@ -298,7 +298,7 @@ class CenterToLocControl extends ol.control.Control {
   }
 
   handleRotation(event){
-  	if(this.isTracking){
+  	if(this.isTracking.enabled){
 	  	let rotation = -(event.alpha * Math.PI/180) - (Math.PI/4)
 	  	let viewRotation = this.getMap().getView().getRotation()
 		this.orientationStyle.setRotation(rotation+viewRotation)
@@ -307,7 +307,7 @@ class CenterToLocControl extends ol.control.Control {
   }
 
   updateRotation(update){
-  	if(this.isTracking){
+  	if(this.isTracking.enabled){
 	  	let rotation = this.orientationStyle.getRotation()
 	  	this.orientationStyle.setRotation(rotation-update)
 		this.positionFeature.setStyle(null)
