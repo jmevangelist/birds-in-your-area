@@ -176,11 +176,11 @@ class CenterToLocControl extends ol.control.Control {
 	const input = document.createElement('input')
 	input.type = 'checkbox'
 	input.className = "btn-check"
-	input.id = 'btn-check-outlined'
+	input.id = 'btn-check-geolocation'
 	const label = document.createElement('label')
 	label.innerHTML = '<i class="bi bi-geo-fill"></i>'
 	label.className = "btn btn-outline-secondary btn-sm"
-	label.setAttribute('for',"btn-check-outlined")
+	label.setAttribute('for',"btn-check-geolocation")
 
     const element = document.createElement('div');
     element.className = 'center-to-loc ol-unselectable ol-control';
@@ -486,9 +486,14 @@ async function getObs(url,signal){
 
 		if(!SPECIES_LAYERS[key]){
 
+			let layer = new ol.layer.Vector({})
+			map.addLayer(layer)
+			let layerIndex = map.getLayers().getLength()-1
+
 			SPECIES_LAYERS[key] = { 'name': obs.obs_by_species[key][0].name,
-									'layerIndex':  map.getLayers().getLength(),
-									'color': colors[map.getLayers().getLength()%colors.length] }
+									'layerIndex':  layerIndex, 
+									'color': colors[layerIndex%colors.length],
+									'obs': obs.obs_by_species[key] }
 
 			let features = createFeatures( 
 				obs.obs_by_species[key], SPECIES_LAYERS[key].color, key)
@@ -500,9 +505,11 @@ async function getObs(url,signal){
 					source: newSource
 				});
 
-			map.addLayer(new ol.layer.Vector({source: newCluster, style: clusterStyle}))
+			layer.setSource(newCluster)
+			layer.setStyle(clusterStyle)
 
 		}else{
+			SPECIES_LAYERS[key].obs.push(...obs.obs_by_species[key])
 			let features = createFeatures(
 				obs.obs_by_species[key],SPECIES_LAYERS[key].color,key)
 			let layerSource = map.getLayers().item(SPECIES_LAYERS[key].layerIndex).getSource().getSource()
@@ -551,6 +558,13 @@ async function searchForBirds(category,extent) {
 	}
 
 	await Promise.all(getObsArr)
+
+	Object.entries(SPECIES_LAYERS).forEach(([taxonId,val])=>{
+		let badge = document.getElementById(taxonId).getElementsByClassName('badge')[0]
+		if(badge){
+			badge.style.background = val.color 
+		}
+	})
 
 	document.getElementById('map-spinner').style.display = 'none'
 	document.getElementById('search').style.visibility = 'visible'
@@ -683,6 +697,7 @@ function loadMap(lat,long,z,cat) {
 			imgElement.src = ""
 			nameElement.innerHTML = next.get('name')
 	    	obsElement.innerHTML = next.get('description')
+	    	obsElement.href = next.get('uri')
 	    	if(next.get('photos') == ''){
 	    		imgElement.style.display = 'None'
 	    		obsButtonCopyright.style.display = 'inline-block'
@@ -723,6 +738,7 @@ function loadMap(lat,long,z,cat) {
 			let firstFeature = featureOver.get('features')[0]
         	nameElement.innerHTML = firstFeature.get('name')
         	obsElement.innerHTML = firstFeature.get('description')
+        	obsElement.href = firstFeature.get('uri')
         	if(firstFeature.get('photos') == ''){
         		imgElement.style.display = 'None'
         	}else{

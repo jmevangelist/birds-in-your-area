@@ -1,6 +1,8 @@
 # birds-in-your-area
 iNaturalist observation map for casual birders and critter enjoyers.
 
+![screenshot](screenshot.png)
+
 ## Built With
 * Django
 * Bootstrap 5
@@ -21,31 +23,29 @@ python3 -m venv /birdsInMyArea
 source birdsInMyArea/bin/activate
 ```
 
-3. Install prerequisites 
+3. Install python dependencies  
 
 ```bash
 pip install -r requirements.txt 
 ```
 
-4. Create SSL Certificate
+4. Create SSL Certificate (optional)
 ```bash
 certtool -p --key-type=rsa --bits=4096 --no-text --outfile=key.pem
 certtool -s --load-privkey key.pem --no-text --outfile=cert.pem
 ```
 
-5. Change run script's permission
+5. Run
 ```bash
-chmod +x run
-```
-
-6. Run Gunicorn
-```bash
-#For "prod" mode 
+#For "prod" mode via Gunicorn
 ./run
-#For dev mode
-./run --dev 
+
+# parameters
+# --dev		dev mode
+# --django 	run Django development server
 ```
 
 
 ## Todo
+- [ ] Celery integration to throttle number of requests to iNat API
 - [ ] Species info page

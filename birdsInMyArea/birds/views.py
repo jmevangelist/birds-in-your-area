@@ -44,19 +44,14 @@ def get_obs(request):
 	extent = request.GET.get("extent")
 	bbox = extent.split(',')
 
-	payload = {
-		'geo': 'true', 
-		'photos': 'true', 
-		'geoprivacy': 'open',
-		'nelat': bbox[3],
-		'nelng': bbox[2],
-		'swlat': bbox[1],
-		'swlng': bbox[0],
-		'quality_grade': 'research',
-		'iconic_taxa': iconicTaxa.get(category),
-		'per_page': 200,
-		'page': page
-	}
+	payload = defaults.payload.copy()
+
+	payload['nelat'] = bbox[3]
+	payload['nelng'] = bbox[2]
+	payload['swlat'] = bbox[1]
+	payload['swlng'] = bbox[0]
+	payload['iconicTaxa'] = iconicTaxa.get(category)
+	payload['page'] = page
 
 	api_url = "https://api.inaturalist.org/v1/observations"	
 
@@ -102,19 +97,13 @@ def side(request):
 	category = request.GET.get("category",defaults.category).lower()
 	bbox = extent.split(',')
 
-	payload = {
-	'geo': 'true', 
-	'photos': 'true', 
-	'geoprivacy': 'open',
-	'nelat': bbox[3],
-	'nelng': bbox[2],
-	'swlat': bbox[1],
-	'swlng': bbox[0],
-	'quality_grade': 'research',
-	'iconic_taxa': iconicTaxa[category],
-	'per_page': 200,
-	'page': 1
-	}
+	payload = defaults.payload.copy()
+
+	payload['nelat'] = bbox[3]
+	payload['nelng'] = bbox[2]
+	payload['swlat'] = bbox[1]
+	payload['swlng'] = bbox[0]
+	payload['iconicTaxa'] = iconicTaxa.get(category)
 
 	api_url = "https://api.inaturalist.org/v1/observations/species_counts"
 	response = requests.get(api_url,params=payload)

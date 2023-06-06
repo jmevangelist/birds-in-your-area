@@ -2,19 +2,29 @@
 
 ROOT=$(dirname $(realpath $0))
 
+BIND_ADDRESS="[::]:8000"
+
 GUNICORN_ARGS=(
 	--keyfile "${ROOT}/key.pem"
 	--certfile "${ROOT}/cert.pem"
-	--bind "[::]:8000"
+	--bind "${BIND_ADDRESS}"
+)
+
+DJANGO_ARS=(
+	"${BIND_ADDRESS}"
 )
 
 DJANGO_DEVELOPMENT=${DJANGO_DEVELOPMENT:-"False"}
+ON_GUNICORN=${ON_GUNICORN:-"True"}
 export SECRET_KEY_BIRDS=$(gpg --gen-random 1 80| base64)
 
 while [[ $# -gt 0 ]]; do
 	case "$1" in 
 		--dev)
 			DJANGO_DEVELOPMENT="True"
+			;;
+		--django)
+			ON_GUNICORN="False"
 			;;
 	esac
 	shift
@@ -27,5 +37,9 @@ else
 	export DJANGO_DEVELOPMENT
 fi
 
-cd "${ROOT}/birdsInMyArea"
-gunicorn "${GUNICORN_ARGS[@]}" "birdsInMyArea.wsgi"
+if [[ x"$ON_GUNICORN" = x"True" ]]; then 
+	cd "${ROOT}/birdsInMyArea"
+	gunicorn "${GUNICORN_ARGS[@]}" "birdsInMyArea.wsgi"
+else
+	python "${ROOT}/birdsInMyArea/manage.py" runserver "${DJANGO_ARS[@]}" 
+fi
