@@ -1,171 +1,4 @@
-const map = new ol.Map({ controls: ol.control.defaults.defaults({attribution: false}) })
-
-var controller
-
-var SPECIES_LAYERS = {} 
-var category = 'birds'
-
-const blankStyle = new ol.style.Style({})
-
-const view = new ol.View({
-    center: [0, 0],
-    zoom: 15,
-    minZoom: 12,
-    maxZoom: 22
-  })
-
-const highlightIconStyles = {
-	birds: new ol.style.Style({
-	  image: new ol.style.Icon({
-	    src: '/static/birds/crow.svg',
-	    crossOrigin: 'anonymous',
-	    scale: 0.06,
-	    opacity: 1,
-	    color: '#000',
-	    stroke: new ol.style.Stroke({
-	            color: '#fff'
-	          }),
-	  }),
-	}),
-	amphibians: new ol.style.Style({
-	  image: new ol.style.Icon({
-	    src: '/static/birds/amphibian.svg',
-	    crossOrigin: 'anonymous',
-	    scale: 0.06,
-	    opacity: 1,
-	    color: '#000',
-	    stroke: new ol.style.Stroke({
-	            color: '#fff'
-	          }),
-	  }),
-	}),
-	fish: new ol.style.Style({
-	  image: new ol.style.Icon({
-	    src: '/static/birds/fish.svg',
-	    crossOrigin: 'anonymous',
-	    scale: 0.06,
-	    opacity: 1,
-	    color: '#000',
-	    stroke: new ol.style.Stroke({
-	            color: '#fff'
-	          }),
-	  }),
-	}),
-	insects: new ol.style.Style({
-	  image: new ol.style.Icon({
-	    src: '/static/birds/insect.svg',
-	    crossOrigin: 'anonymous',
-	    scale: 0.06,
-	    opacity: 1,
-	    color: '#000',
-	    stroke: new ol.style.Stroke({
-	            color: '#fff'
-	          }),
-	  }),
-	}),
-	mammals: new ol.style.Style({
-	  image: new ol.style.Icon({
-	    src: '/static/birds/mammal.svg',
-	    crossOrigin: 'anonymous',
-	    scale: 0.06,
-	    opacity: 1,
-	    color: '#000',
-	    stroke: new ol.style.Stroke({
-	            color: '#fff'
-	          }),
-	  }),
-	}),
-	plants: new ol.style.Style({
-	  image: new ol.style.Icon({
-	    src: '/static/birds/plant.svg',
-	    crossOrigin: 'anonymous',
-	    scale: 0.06,
-	    opacity: 1,
-	    color: '#000',
-	    stroke: new ol.style.Stroke({
-	            color: '#fff'
-	          }),
-	  }),
-	}),
-	spiders: new ol.style.Style({
-	  image: new ol.style.Icon({
-	    src: '/static/birds/spider.svg',
-	    crossOrigin: 'anonymous',
-	    scale: 0.06,
-	    opacity: 1,
-	    color: '#000',
-	    stroke: new ol.style.Stroke({
-	            color: '#fff'
-	          }),
-	  }),
-	}),
-	reptiles: new ol.style.Style({
-	  image: new ol.style.Icon({
-	    src: '/static/birds/reptile.svg',
-	    crossOrigin: 'anonymous',
-	    scale: 1,
-	    opacity: 1,
-	    color: '#000',
-	    stroke: new ol.style.Stroke({
-	            color: '#fff'
-	          }),
-	  }),
-	}),
-	mollusks: new ol.style.Style({
-	  image: new ol.style.Icon({
-	    src: '/static/birds/mollusk.svg',
-	    crossOrigin: 'anonymous',
-	    scale: 0.10,
-	    opacity: 1,
-	    stroke: new ol.style.Stroke({
-	            color: '#fff'
-	          }),
-	  }),
-	}),
-	fungi: new ol.style.Style({
-	  image: new ol.style.Icon({
-	    src: '/static/birds/fungi.svg',
-	    crossOrigin: 'anonymous',
-	    scale: 0.10,
-	    opacity: 1,
-	    stroke: new ol.style.Stroke({
-	            color: '#fff'
-	          }),
-	  }),
-	})
-}
-
-let styleCache = {}
-
-function clusterStyle(feature) {
-    const size = feature.get('features').length;
-    const color = feature.get('features')[0].get('color')
-    let style = styleCache[size.toString() + '_' +  color];
-    if (!style) {
-      style = new ol.style.Style({
-        image: new ol.style.Circle({
-          radius: 10,
-          stroke: new ol.style.Stroke({
-            color: '#fff',
-          }),
-          fill: new ol.style.Fill({
-            color: feature.get('features')[0].get('color') || '#3399CC',
-          }),
-        }),
-        text: new ol.style.Text({
-          text: size.toString(),
-          fill: new ol.style.Fill({
-            color: '#fff',
-          }),
-        }),
-      });
-      styleCache[size] = style;
-    }
-    return style;
-}
-
-
-class CenterToLocControl extends ol.control.Control {
+class GeoLocateControl extends ol.control.Control {
 
   constructor(opt_options) {
     const options = opt_options || {};
@@ -183,7 +16,7 @@ class CenterToLocControl extends ol.control.Control {
 	label.setAttribute('for',"btn-check-geolocation")
 
     const element = document.createElement('div');
-    element.className = 'center-to-loc ol-unselectable ol-control';
+    element.className = 'geolocate ol-unselectable ol-control';
     element.appendChild(input)
     element.appendChild(label)
 
@@ -191,7 +24,7 @@ class CenterToLocControl extends ol.control.Control {
 	  trackingOptions: {
 	    enableHighAccuracy: true,
 	  },
-	  projection: view.getProjection(),
+	  //projection: view.getProjection(),
 	});
 
     const positionFeatureControl = new ol.Feature();
@@ -261,16 +94,16 @@ class CenterToLocControl extends ol.control.Control {
 			positionFeatureControl.setStyle(blankStyle)
 		}
 	})
-	
 
     super({
       element: element,
       target: options.target,
     });
 
-	input.addEventListener('change', this.handleCenterToLoc.bind(this), false)
+	input.addEventListener('change', this.handleGeoLocateControl.bind(this), false)
 	window.addEventListener("deviceorientationabsolute", this.handleRotation.bind(this), false)
-	
+	geolocationControl.on('change:projection', this.projectionSet.bind(this), false)
+
 	this.geolocation = geolocationControl
 	this.geoLayer = geoLayer
 	this.orientationStyle = orientationStyle
@@ -279,7 +112,7 @@ class CenterToLocControl extends ol.control.Control {
 
   }
 
-  handleCenterToLoc() {
+  handleGeoLocateControl() {
   	if(this.element.firstChild.checked){
   		this.geoLayer.setMap(this.getMap())
 	  	if(controller){ controller.abort() }
@@ -314,69 +147,207 @@ class CenterToLocControl extends ol.control.Control {
 	}
   }
 
-}
+  projectionSet(){
+  	let view = this.getMap().getView()
+  	let updateRotation = this.updateRotation
+  	let viewRotationPrev = 0
+	view.on('change:rotation',function(){
+		let r = view.getRotation()
+		this.updateRotation(viewRotationPrev-r)
+		viewRotationPrev = r
+	}.bind(this))
+  }
 
-async function searchPlaces(input){
-
-	let url = "https://nominatim.openstreetmap.org/search?format=geojson&q=" + input.value
-	const response = await fetch(url)
-	if(!response.ok){
-		throw new Error('Failed to load: '+ url)
-	}
-
-	let places = await response.json()
-
-	if(places.features.length){
-		input.classList.remove('is-invalid')
-	}else{
-		input.classList.add('is-invalid')
-	}
-
-	let placesOptions = document.querySelector('#placesOptions')
-	placesOptions.innerHTML = ""
-
-	let strOptions = ""
-	for(let i=0; i<places.features.length; i++){
-		strOptions = strOptions + "<option value='" +places.features[i].properties.display_name+ "'"
-			+ ' data-lat="' +places.features[i].geometry.coordinates[1] + '"'
-			+ ' data-lng="' +places.features[i].geometry.coordinates[0] + '">'
-	}
-
-	placesOptions.innerHTML = strOptions
 
 }
 
-function selectPlace(event){
+class searchPlacesControl extends ol.control.Control {
+	constructor(opt_options) {
+    	const options = opt_options || {};
+    	const element = opt_options
 
-	let element
-	if(event === null || event === undefined){
-		element = document.querySelector("#placesDataList")
-	}else if(event.target.value != ""){
-		element = event.target
+    	super({
+	      element: element,
+	      target: options.target,
+	    });
+
+    	this.input = element.querySelector('input')
+    	this.button = element.querySelector('button')
+    	this.datalist = element.querySelector('datalist')
+
+		this.input.addEventListener('input', this.searchPlaces.bind(this))
+
+		this.input.addEventListener("change", this.selectPlace.bind(this));
+		this.button.addEventListener("click", this.selectPlace.bind(this))
+
 	}
 
-	if(element.list.firstChild){
-		let dataset = element.list.firstChild.dataset
-		let locWebMerc = ol.proj.fromLonLat([dataset.lng,dataset.lat])
-		if(controller){ controller.abort() }
-		map.getView().animate({zoom: 12},{center: locWebMerc},{zoom: 13})		
-		element.value = ""
+	async searchPlaces(){
+
+		if(this.input.value.length <= 2){ return true }
+
+		let searchString = this.input.value
+
+		let url = "https://nominatim.openstreetmap.org/search?format=geojson&q=" + searchString
+		const response = await fetch(url)
+		if(!response.ok){
+			throw new Error('Failed to load: '+ url)
+		}
+
+		let places = await response.json()
+
+		if(places.features.length){
+			this.input.classList.remove('is-invalid')
+		}else{
+			this.input.classList.add('is-invalid')
+		}
+
+		this.datalist.innerHTML = ""
+
+		let strOptions = ""
+		for(let i=0; i<places.features.length; i++){
+//			document.createElement('option')
+			strOptions = strOptions + "<option value='" +places.features[i].properties.display_name+ "'"
+				+ ' data-lat="' +places.features[i].geometry.coordinates[1] + '"'
+				+ ' data-lng="' +places.features[i].geometry.coordinates[0] + '">'
+		}
+
+		this.datalist.innerHTML = strOptions
+
 	}
 
+	selectPlace(){
+		if(this.datalist.firstChild && this.input.value != ""){
+			let dataset = this.datalist.firstChild.dataset
+			let locWebMerc = ol.proj.fromLonLat([dataset.lng,dataset.lat])
+			if(controller){ controller.abort() }
+			this.getMap().getView().animate({zoom: 10},{center: locWebMerc},{zoom: 13})		
+			this.input.value = ""
+		}
+	}
 }
 
-let placeInput = document.querySelector("#placesDataList")
-placeInput.addEventListener("input", (event) => {
-	if(event.target.value.length > 2){
-		searchPlaces(event.target).catch(e=>{
-			console.log(e) 
-		})
+class featureCardOverlay extends ol.Overlay {
+
+	constructor(options){
+		super({	
+				id: options.id,
+				element: options.element,
+				offset: options.offset,
+				stopEvent: options.stopEvent,
+				autoPan: options.autoPan
+			})
+
+		this.features = []
+		this.withNext = false
+		this.currentFeatureIndex = 0
+		this.autoFocusKeyID =  options.autoFocusKeyID
+		this.autoFocusContainer = options.autoFocusContainer
+
+		const element = options.element
+
+		this.imgElement = element.querySelector('img')
+		this.nameElement = element.querySelector('.obs-name')
+		this.attrElement = element.querySelector('.obs-attribution')
+		this.descriptionElement = element.querySelector('.obs-description')
+		this.nextButton = element.querySelector('.obs-next')
+		this.soundElement = element.querySelector('audio')
+		this.closeButton = element.querySelector('.btn-close')
+
+		if(this.nextButton){
+			this.nextButton.addEventListener('click',this.next.bind(this))
+		}
+		if(options.stopEvent){
+			this.element.addEventListener('pointermove', function(e){
+		   		e.stopPropagation();
+			})
+		}
+		if(this.closeButton){
+			this.closeButton.addEventListener('click',this.close.bind(this))
+		}
 	}
-});
 
-placeInput.addEventListener("change", selectPlace);
+	update(feature){
 
-function createFeatures(coords,color,taxonId){
+		this.imgElement.src = ""
+		this.nameElement.innerHTML = feature.get('name')
+    	this.descriptionElement.innerHTML = feature.get('description')
+    	this.descriptionElement.href = feature.get('uri')
+    	this.attrElement.innerHTML = feature.get('attribution')
+
+    	if(this.imgElement){
+	        if(feature.get('photos')){
+				let dimensions = feature.get('dimensions')
+				this.imgElement.width = dimensions.width
+				this.imgElement.height = dimensions.height
+				this.imgElement.style.display = 'inline-block'
+		    	this.imgElement.src = feature.get('photos')
+			}else{
+				this.imgElement.width = 400
+				this.imgElement.height = 300
+				this.imgElement.src = '/static/birds/placeholder.svg'
+			}
+		}
+
+		if(this.soundElement){
+			if(feature.get('sound')){
+	        	this.soundElement.style.display = 'inline-block'
+	        	this.soundElement.src = feature.get('sound') 
+	        }else{
+	        	this.soundElement.style.display = 'None'
+	        }
+	    }
+
+	    if(this.nextButton){
+			if(this.withNext){
+		    	this.nextButton.style.visibility = 'visible'
+		    }else{
+		    	this.nextButton.style.visibility = 'hidden'
+		    }
+		}
+
+		if(this.autoFocusKeyID){
+			let focusElement 
+			if(this.autoFocusContainer){
+				focusElement = this.autoFocusContainer.getElementById(feature.get(this.autoFocusKeyID))
+			}else{
+	    		focusElement = document.getElementById(feature.get(this.autoFocusKeyID))
+	    	}
+	    	if(focusElement){
+		    	focusElement.parentNode.scrollTop = focusElement.offsetTop - focusElement.parentNode.offsetTop
+		    }
+		}
+	}
+
+	setFeatures(features){
+		this.features = features 
+		this.currentFeatureIndex = 0
+		if(this.features.length == 1){
+			this.withNext = false
+    	}else{
+    		this.withNext = true 
+    	}
+    	this.update(features[0])
+	}
+
+	next(){
+		this.currentFeatureIndex++
+		this.currentFeatureIndex = this.currentFeatureIndex % this.features.length
+		this.update(this.features[this.currentFeatureIndex])
+	}
+
+	clearMedia(){
+		this.imgElement.src = ''
+		this.soundElement.src = ''
+	}
+
+	close(){
+		this.clearMedia()
+		this.setPosition(null)
+	}
+}
+
+function createFeatures(coords,color){
 
 	let features = []
 
@@ -394,11 +365,14 @@ function createFeatures(coords,color,taxonId){
 			uri: coords[i].uri,
 			observer: coords[i].observer,
 			photos: coords[i].photos.replace('square','medium'),
+			dimensions: coords[i].dimensions,
 			attribution: coords[i].attribution,
-			taxonId: taxonId,
-			description: 'Seen by ' + coords[i].observer + ' on ' 
-			+ (new Date(coords[i].time_observed_at)).toDateString()
-
+			taxonId: coords[i].taxon_id,
+			sound: coords[i].sound,
+			description: '<figure><blockquote class="blockquote text-start"><p>'+coords[i].description+ '</p>'+
+				'</blockquote><figcaption class="blockquote-footer text-end">'+
+    			coords[i].observer + ', <cite>'+ (new Date(coords[i].time_observed_at)).toDateString() +
+    			'</cite></figcaption></figure>'
 		});
 
 		features.push(f)
@@ -408,69 +382,64 @@ function createFeatures(coords,color,taxonId){
 }
 
 function setPanelListeners(){
-	const panel = document.getElementById("side-panel");
-	panel.addEventListener(
-	  "mouseover",	
-	  (event) => {
-	  	if(event.target.dataset.type == 'species_card'){
+	const panel = document.getElementById("species-panel");
 
-	  		if(SPECIES_LAYERS[event.target.dataset.taxonId]){
-		  		let index = SPECIES_LAYERS[event.target.dataset.taxonId].layerIndex
+	const showAll = panel.querySelector("#showAllCheckBox")
 
-		  		map.getLayers().item(index).setStyle(highlightIconStyles[category.toLowerCase()])
-		  		let z = map.getLayers().getLength()
-		  		map.getLayers().item(index).setZIndex(z+1)	  	
-		  	}	
-	  	}
-	  },
-	  false
-	);	
-	panel.addEventListener(
-		"mouseout",
-		(event) => {
-			if(event.target.dataset.type == 'species_card'){
-				if(SPECIES_LAYERS[event.target.dataset.taxonId]){
-					let index = SPECIES_LAYERS[event.target.dataset.taxonId].layerIndex
-		  			map.getLayers().item(index).setStyle(clusterStyle)
-		  			map.getLayers().item(index).setZIndex(1)	  		
-		  		}
-	  		}
-		},
-		false
-		)
-
-	let previousCard = null 
-	panel.addEventListener(
-	  "touchstart",	
-	  (event) => {
-	  	console.log(previousCard, event.target.dataset.taxonId)
-	  	if(event.target.dataset.type == 'species_card'){
-
-	  		if(previousCard != event.target.dataset.taxonId){
-
-		  		if(SPECIES_LAYERS[event.target.dataset.taxonId]){
-			  		let index = SPECIES_LAYERS[event.target.dataset.taxonId].layerIndex
-
-			  		map.getLayers().item(index).setStyle(highlightIconStyles[category.toLowerCase()])
-			  		let z = map.getLayers().getLength()
-			  		map.getLayers().item(index).setZIndex(z+1)	  	
-			  	}
-
-			  	if(previousCard){
-			  		let index = SPECIES_LAYERS[previousCard].layerIndex
-		  			map.getLayers().item(index).setStyle(clusterStyle)
-		  			map.getLayers().item(index).setZIndex(1)	  		
-			  	}
-			  	previousCard = 	event.target.dataset.taxonId
+	if(showAll){
+		showAll.addEventListener('change',function(){
+			cardCheckBoxes = panel.querySelectorAll(".card-check")
+			if(this.checked){
+				taxonId.forEach((e,i)=>{
+					taxonId[i] = true
+				})
+				cardCheckBoxes.forEach((e,i)=>{
+					cardCheckBoxes[i].checked = true
+				})
 			}else{
-				let index = SPECIES_LAYERS[previousCard].layerIndex
-	  			map.getLayers().item(index).setStyle(clusterStyle)
-	  			map.getLayers().item(index).setZIndex(1)
-	  			previousCard = null
+				taxonId.forEach((e,i)=>{
+					taxonId[i] = false
+				})
+				cardCheckBoxes.forEach((e,i)=>{
+					cardCheckBoxes[i].checked = false
+				})
+			}
+			clusterSource.refresh()
+		})
+	}
+
+	panel.addEventListener('change',function(e){
+
+		if(e.target.classList.contains("card-check")){
+			console.log(e.target.checked,e.target.dataset.taxonId)
+			if(e.target.checked){
+				taxonId[e.target.dataset.taxonId] = true
+				clusterSource.refresh()
+			}else{
+				taxonId[e.target.dataset.taxonId] = false
+				clusterSource.refresh()
+			}
+		}
+	})
+
+	panel.addEventListener(
+	  "click",	
+	  (event) => {
+
+	  	if(event.target.dataset.type == 'species_card'){
+
+	  		if(event.target.querySelector('.card-check').checked){
+				event.target.querySelector('.card-check').checked = false
+				taxonId[event.target.dataset.taxonId] = false
+				clusterSource.refresh()
+			}else{
+				event.target.querySelector('.card-check').checked = true
+				taxonId[event.target.dataset.taxonId] = true
+				clusterSource.refresh()
 			}
 	  	}
 	  },
-	  false
+	  true
 	);	
 }
 
@@ -481,49 +450,83 @@ async function getObs(url,signal){
 	}
 
 	let obs = await obs_data.json()
+	let allObs = []
 
+	let features = createFeatures(obs.all_obs,colors[color],key)
+	allObs = allObs.concat(features)
+	obsSource.addFeatures(features)
 	for (var key in obs.obs_by_species){
-
-		if(!SPECIES_LAYERS[key]){
-
-			let layer = new ol.layer.Vector({})
-			map.addLayer(layer)
-			let layerIndex = map.getLayers().getLength()-1
-
-			SPECIES_LAYERS[key] = { 'name': obs.obs_by_species[key][0].name,
-									'layerIndex':  layerIndex, 
-									'color': colors[layerIndex%colors.length],
-									'obs': obs.obs_by_species[key] }
-
-			let features = createFeatures( 
-				obs.obs_by_species[key], SPECIES_LAYERS[key].color, key)
-			let newSource = new ol.source.Vector({features: features})
-
-			let newCluster = new ol.source.Cluster({
-					attributions: '<a href="https://www.inaturalist.org">iNaturalist</a>',
-					distance: 50,
-					source: newSource
-				});
-
-			layer.setSource(newCluster)
-			layer.setStyle(clusterStyle)
-
-		}else{
-			SPECIES_LAYERS[key].obs.push(...obs.obs_by_species[key])
-			let features = createFeatures(
-				obs.obs_by_species[key],SPECIES_LAYERS[key].color,key)
-			let layerSource = map.getLayers().item(SPECIES_LAYERS[key].layerIndex).getSource().getSource()
-			layerSource.addFeatures(features)
-		}
-		
+		taxonId[key] = true
+		clusterSource.refresh()
 	}
-	return obs.total_results
+	return true
+
+	//for (var key in obs.obs_by_species){
+
+		// if(!SPECIES_LAYERS[key]){
+
+		// 	let layer = new ol.layer.Vector({})
+		// 	map.addLayer(layer)
+		// 	let layerIndex = map.getLayers().getLength()-1
+
+		// 	SPECIES_LAYERS[key] = { 'name': obs.obs_by_species[key][0].name,
+		// 							'layerIndex':  layerIndex, 
+		// 							'color': colors[layerIndex%colors.length],
+		// 							'obs': obs.obs_by_species[key] }
+
+		// 	let features = createFeatures( 
+		// 		obs.obs_by_species[key], SPECIES_LAYERS[key].color, key)
+		// 	let newSource = new ol.source.Vector({features: features})
+
+		// 	let newCluster = new ol.source.Cluster({
+		// 			attributions: '<a href="https://www.inaturalist.org">iNaturalist</a>',
+		// 			distance: 50,
+		// 			source: newSource
+		// 		});
+
+		// 	layer.setSource(newCluster)
+		// 	layer.setStyle(clusterStyle)
+
+		// 	allObs = allObs.concat(features)
+
+		// }else{
+		// 	SPECIES_LAYERS[key].obs.push(...obs.obs_by_species[key])
+		// 	let features = createFeatures(
+		// 		obs.obs_by_species[key],SPECIES_LAYERS[key].color,key)
+		// 	let layerSource = map.getLayers().item(SPECIES_LAYERS[key].layerIndex).getSource().getSource()
+		// 	layerSource.addFeatures(features)
+		// 	allObs = allObs.concat(features)
+		// }
+		// if(SPECIES_LAYERS[key]){
+		// 	SPECIES_LAYERS[key].push(...obs.obs_by_species[key])
+		// }else{
+		// 	SPECIES_LAYERS[key] = obs.obs_by_species[key]
+		// }
+	//}
+
+}
+
+function showToast(species_count,total_obs){
+	const toast = document.getElementById('resultsToast')
+	const toastBootstrap = bootstrap.Toast.getOrCreateInstance(toast,{autohide: true, delay: 10000})
+	const toastMessage = document.getElementById('toastMessage')
+
+	let msg = species_count + ' unique species of ' + category + ' in ' + total_obs + ' observations!'
+	if(total_obs > 3000){
+		msg = msg + "<br/>Naturalists have been busy here!"
+		msg = msg + "<br/>We're mapping only 3000 out of the " + total_obs
+		msg = msg + '<br/>Head over at <a href="https://www.inaturalist.org/" target="_blank">iNaturalist</a> to see more.'
+	}else if(total_obs == 0){
+		msg = 'Have you seen them? Be a <a href="https://www.inaturalist.org/" target="_blank">Naturalist</a> :)'
+	}
+	toastMessage.innerHTML = msg
+	toastBootstrap.show()
 }
 
 async function searchForBirds(category,extent) {
 
 	//get all species
-	let url = document.getElementById('side-panel').dataset.link + '?' + new URLSearchParams({
+	let url = document.getElementById('species-panel').dataset.link + '?' + new URLSearchParams({
 		'extent': extent,
 		'category': category
 	})
@@ -537,37 +540,35 @@ async function searchForBirds(category,extent) {
 	}
 
 	var html = await response.text()
-	document.getElementById('side-panel').innerHTML = html;
+	document.getElementById('species-panel').innerHTML = html;
 	setPanelListeners()	
 
-	document.getElementById('side-panel-spinner').style.display = 'none'
-	document.getElementById('side-panel').style.display = 'inline-block'
-	document.getElementById('side-panel').scrollTop = 0;
+	document.getElementById('species-panel-spinner').style.display = 'none'
+	document.getElementById('species-panel').style.display = 'inline-block'
+	document.getElementById('species-panel').scrollTop = 0;
+
+	var total_obs = document.getElementById('panelMetaData').dataset.totalObs 
+	var species_count = document.getElementById('panelMetaData').dataset.speciesCount  
+
+	showToast(species_count,total_obs)
 
 	//get observations
-	let page = 1
+	color = Math.floor(Math.random() * colors.length)
 	url = obs_url + '?category=' + category + '&extent=' + extent +'&page=' 
 
-	let total_results = await getObs(url+page,signal)
-
+	taxonId.length = 0
+	styleCache.length = 0
 	let getObsArr = []
-	if(total_results > 200){
-		for(page = 2; page<= Math.ceil(total_results/200); page++ ){
-			getObsArr.push(getObs(url+page,signal))
-		}
+
+	for(let page = 1; page<= Math.ceil(total_obs/200) && page<=15 ; page++ ){
+		getObsArr.push(getObs(url+page,signal))
 	}
 
 	await Promise.all(getObsArr)
 
-	Object.entries(SPECIES_LAYERS).forEach(([taxonId,val])=>{
-		let badge = document.getElementById(taxonId).getElementsByClassName('badge')[0]
-		if(badge){
-			badge.style.background = val.color 
-		}
-	})
-
 	document.getElementById('map-spinner').style.display = 'none'
 	document.getElementById('search').style.visibility = 'visible'
+
 	return true 
 }
 
@@ -579,7 +580,7 @@ function pickCategory(cat){
 function search() {
 
 	//show spinners
-	document.getElementById('side-panel').style.display = 'none'
+	document.getElementById('species-panel').style.display = 'none'
 	document.getElementById('search').style.visibility = 'hidden';
 
 	let allSpinners = document.getElementsByClassName('searching') 
@@ -587,24 +588,23 @@ function search() {
 		allSpinners[i].style.display = 'inline-block'
 	}
 
-	document.getElementById('side-panel').innerHTML = ""
+	document.getElementById('species-panel').innerHTML = ""
 
 	//clear map
 	let overlays = map.getOverlays()
 	if(overlays.getLength()){overlays.item(0).setPosition(null)}
-
-	let r = map.getLayers().getLength()-1
-	while(r>0){
-		map.getLayers().pop()
-		r--
-	}
-	SPECIES_LAYERS = {}
+	obsSource.clear()
 
 	//where are you? and how big of an area are you looking at?
 	let coord = ol.proj.toLonLat(view.getCenter())
 	let zoom = view.getZoom()
 
 	var extent = map.getView().calculateExtent(map.getSize());
+
+	let source_url = heatmap_url + '?category=' + category 
+	heatmap_source.setUrl(source_url)
+	heatmapLayer.setExtent(extent)
+
 	extent = ol.proj.transformExtent(extent, 'EPSG:3857', 'EPSG:4326');
 	extent = extent.map(x => Math.round((x + Number.EPSILON) * 100000) / 100000)
 	coord = coord.map(x => Math.round((x + Number.EPSILON) * 100000)/ 100000)
@@ -621,13 +621,15 @@ function search() {
 		document.cookie = "category=" + category + ";path=/; SameSite=Strict;"
 	}).catch(e => {
 		//something went wrong or fetch is aborted
-		//console.log(e)
+		console.log(e)
 		document.getElementById('search').style.visibility = 'visible'
-		document.getElementById('side-panel-spinner').style.display = 'none'
-		document.getElementById('side-panel').style.display = 'inline-block'
-		document.getElementById('side-panel').scrollTop = 0;
+		document.getElementById('species-panel-spinner').style.display = 'none'
+		document.getElementById('species-panel').style.display = 'inline-block'
+		document.getElementById('species-panel').scrollTop = 0;
 		document.getElementById('map-spinner').style.display = 'none'
 	})
+
+
 }
 
 function loadMap(lat,long,z,cat) {
@@ -645,148 +647,111 @@ function loadMap(lat,long,z,cat) {
 	view.setZoom(z)
 	view.setCenter(ol.proj.fromLonLat([long,lat]))
 
-	map.setLayers([new ol.layer.Tile({
-      				source: new ol.source.OSM() })])
+	category = cat ?? 'birds'
 
 	map.setTarget('map')
-	map.setView(view)
+	map.once('loadend',(evt)=>{
+		search()
+	})	
 
-	locationControl = new CenterToLocControl()
-	map.addControl(locationControl)
+}
 
-	let viewRotationPrev = 0
-	view.on('change:rotation',function(){
-		let r = view.getRotation()
-		locationControl.updateRotation(viewRotationPrev-r)
-		viewRotationPrev = r
-	})
+var controller 	//controller for fetch abort
+var color = 0 	
+var category = 'birds'
 
-	const attribution = new ol.control.Attribution({
-		collapsible: true,
-		collapsed: true
-	})
+const view = new ol.View({
+    center: [0, 0],
+    zoom: 15,
+    minZoom: 10,
+    maxZoom: 22
+  })
 
-	map.addControl(attribution)
+const heatmap_source = new ol.source.XYZ();
+const heatmapLayer = new ol.layer.Tile({source: heatmap_source, opacity:0.8 });
+const heatmap_url = "/heatmap/{z}/{x}/{y}.png"
+const obsSource = new ol.source.Vector({})
 
-	const infoElement = document.getElementById('obs-info');
-	const imgElement = document.getElementById('obs-img');
-	const nameElement = document.getElementById('obs-name');
-	const attrElement = document.getElementById('obs-attribution')
-	const obsElement = document.getElementById('observer')
-	const obsButton = document.getElementById('obs-button')
-	const obsButtonCopyright = document.getElementById('obs-button-copyright')
+const taxonId = []
+const clusterSource = new ol.source.Cluster({
+		attributions: '<a href="https://www.inaturalist.org">iNaturalist</a>',
+		distance: 40,
+		source: obsSource,
+		geometryFunction: function(feature){
 
-	infoElement.addEventListener('pointermove', function(e){
-   		e.stopPropagation();
-	})
-
-	const infoOverlay = new ol.Overlay({
-	  element: infoElement,
-	  offset: [5, 5],
-	  stopEvent: true,
-	  autoPan: {animation:{duration:500}}
-	});
-
-	map.addOverlay(infoOverlay);
-
-	let pointerOverFeature = null;
-	nextIndex = 1
-	function nextObs(){
-		next = pointerOverFeature.get('features')[nextIndex]
-		if(next){
-			imgElement.src = ""
-			nameElement.innerHTML = next.get('name')
-	    	obsElement.innerHTML = next.get('description')
-	    	obsElement.href = next.get('uri')
-	    	if(next.get('photos') == ''){
-	    		imgElement.style.display = 'None'
-	    		obsButtonCopyright.style.display = 'inline-block'
-	    		obsButton.style.visibility = 'hidden'
-	    	}else{
-	    		imgElement.style.display = 'inline-block'
-	        	imgElement.src = next.get('photos')
-	        	obsButtonCopyright.style.display = 'None'
-	        	obsButton.style.visibility = 'visible'
-	        }
-	    	attrElement.innerHTML = next.get('attribution')
-	    	nextIndex++
-	    }
-	    nextIndex = nextIndex % pointerOverFeature.get('features').length
-	}
-
-
-	obsButton.addEventListener('click',nextObs)
-	obsButtonCopyright.addEventListener('click',nextObs)
-
-	function showCards(evt){
-
-		const featureOver = map.forEachFeatureAtPixel(evt.pixel, (feature) => {
-			if(feature.get('features')){
-				return feature;
+			if(taxonId[feature.get('taxonId')]){
+				return feature.getGeometry()
 			}else{
 				return null
 			}
-		}); 
 
-		if (featureOver) { //feature detected
-			if(pointerOverFeature && pointerOverFeature != featureOver){
-				imgElement.src = ""
-				pointerOverFeature.setStyle()
-				nextIndex = 1
-			}
-			featureOver.setStyle(highlightIconStyles[category.toLowerCase()]);
-			let firstFeature = featureOver.get('features')[0]
-        	nameElement.innerHTML = firstFeature.get('name')
-        	obsElement.innerHTML = firstFeature.get('description')
-        	obsElement.href = firstFeature.get('uri')
-        	if(firstFeature.get('photos') == ''){
-        		imgElement.style.display = 'None'
-        	}else{
-        		imgElement.style.display = 'inline-block'
-	        	imgElement.src = firstFeature.get('photos')
-	        }
-        	attrElement.innerHTML = firstFeature.get('attribution')
-        	if(featureOver.get('features').length > 1){
-        		if(firstFeature.get('photos') == ''){
-        			obsButton.style.visibility = 'hidden'
-        			obsButtonCopyright.style.display = 'inline-block'
-        		}else{
-	        		obsButton.style.visibility = 'visible'
-        			obsButtonCopyright.style.display = 'None'
-	        	}
-        	}else{
-        		obsButton.style.visibility = 'hidden'
-        		obsButtonCopyright.style.display = 'None'
-        	}
-
-
-        	infoOverlay.setPosition(featureOver.getGeometry().getCoordinates())
-
-         	pointerOverFeature = featureOver
-        	let card = document.getElementById(firstFeature.get('taxonId'))
-        	card.parentNode.scrollTop = card.offsetTop - card.parentNode.offsetTop
-
-      	}else if(pointerOverFeature && evt.type=='click'){ //no feature on pointer
-      		pointerOverFeature.setStyle()
-      		pointerOverFeature = null
-      		imgElement.src = ""
-      		infoOverlay.setPosition(null)
-      	}
-	}
-
-	map.on('pointermove', showCards)
-	map.on('click', showCards)
-
-	map.on('moveend',(evt)=>{
-		if(document.getElementsByClassName('searching')[0].style.display == 'none'){
-			document.getElementById('search').style.visibility = 'visible';
 		}
-	})
+	});
 
-	category = cat ?? 'birds'
+const obsLayer = new ol.layer.Vector({source: clusterSource, style: clusterStyle})
+const osmLayer = new ol.layer.Tile({ source: new ol.source.OSM() }) //, className: 'bw' })
 
-	map.once('loadend',(evt)=>{
-		search()
-	})
+const infoOverlay = new featureCardOverlay({
+	element: document.getElementById('obs-info'),
+	offset: [5, 5],
+	stopEvent: true,
+	autoPan: {animation:{duration:100}},
+	autoFocusKeyID: 'taxonId'
+})
+
+const map = new ol.Map({ controls: ol.control.defaults.defaults({attribution: false}), 
+	layers: [osmLayer, heatmapLayer, obsLayer],
+	view: view,
+	overlays: [infoOverlay]
+})
+
+//Map controls
+
+let controlElements = document.getElementsByClassName("map-control")
+for (let i=0; i<controlElements.length; i++){
+	map.addControl(new ol.control.Control({element: controlElements[i]}))
 }
 
+locationControl = new GeoLocateControl()
+map.addControl(locationControl)
+locationControl.geolocation.setProjection(view.getProjection())
+
+map.addControl(new ol.control.Attribution({
+	collapsible: true,
+	collapsed: true
+}))
+
+map.addControl(new searchPlacesControl(document.getElementById('searchPlaces')))
+
+//Map Events
+
+let prevFeatureCluster = null;
+function showCards(evt){
+
+	const features = map.forEachFeatureAtPixel(evt.pixel, (feature) => {
+		if(feature.get('features')){
+			return feature;
+		}else{
+			return null
+		}
+	}); 
+
+	if (features) { //feature detected
+		if(prevFeatureCluster && prevFeatureCluster != features){
+			infoOverlay.clearMedia()
+			prevFeatureCluster.setStyle()
+		}
+		features.setStyle(highlightIconStyles[category.toLowerCase()]);
+		infoOverlay.setFeatures(features.get('features'))
+    	infoOverlay.setPosition(features.getGeometry().getCoordinates())
+     	prevFeatureCluster = features
+
+  	}else if(prevFeatureCluster && evt.type=='click'){ //no feature on pointer
+  		prevFeatureCluster.setStyle()
+  		prevFeatureCluster = null
+  		infoOverlay.close()
+  	}
+}
+
+map.on('pointermove', showCards)
+map.on('click', showCards)

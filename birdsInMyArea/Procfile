@@ -1,1 +1,1 @@
-web: python manage.py collectstatic --noinput && gunicorn birdsInMyArea.wsgi
+web: python manage.py collectstatic --noinput && gunicorn --workers 5 birdsInMyArea.wsgi

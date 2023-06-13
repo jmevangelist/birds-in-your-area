@@ -11,7 +11,7 @@ https://docs.djangoproject.com/en/4.2/ref/settings/
 """
 
 from pathlib import Path
-import os 
+import os, logging
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -27,18 +27,40 @@ DEBUG = False
 
 ALLOWED_HOSTS = ['.localhost', '127.0.0.1', 'athena', 'birds-in-your-area.up.railway.app']
 CSRF_TRUSTED_ORIGINS = ['https://birds-in-your-area.up.railway.app']
-# SECURE_HSTS_SECONDS = 3600
-# SECURE_HSTS_INCLUDE_SUBDOMAINS = True
+SECURE_HSTS_SECONDS = 3600
+SECURE_HSTS_INCLUDE_SUBDOMAINS = True
 # SECURE_SSL_REDIRECT = True 
 # SESSION_COOKIE_SECURE = True 
-# SECURE_HSTS_PRELOAD = True 
+SECURE_HSTS_PRELOAD = True 
 # CSRF_COOKIE_SECURE = True 
 
-# Application definition
+#CELERY Settings
+CELERY_BROKER_URL = 'amqp://localhost'
+CELERY_BROKER_CONNECTION_RETRY_ON_STARTUP = True
+CELERY_ACCEPT_CONTENT = ['json']
+CELERY_RESULT_BACKEND = 'rpc://'
+CELERY_TASK_SERIALIZER = 'json'
+CELERY_WORKER_CANCEL_LONG_RUNNING_TASKS_ON_CONNECTION_LOSS = True
+CELERY_TASK_TRACK_STARTED = True
 
+#LOGGING
+LOGGING = {
+    "version": 1,
+    "disable_existing_loggers": False,
+    "handlers": {
+        "console": {
+            "class": "logging.StreamHandler",
+        },
+    },
+    "root": {
+        "handlers": ["console"],
+        "level": "INFO",
+    },
+}
+
+# Application definition
 INSTALLED_APPS = [
     'birds.apps.BirdsConfig',
-    'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
     'django.contrib.sessions',

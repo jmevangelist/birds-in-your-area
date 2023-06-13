@@ -8,6 +8,7 @@ GUNICORN_ARGS=(
 	--keyfile "${ROOT}/key.pem"
 	--certfile "${ROOT}/cert.pem"
 	--bind "${BIND_ADDRESS}"
+	--workers 5
 )
 
 DJANGO_ARS=(
@@ -31,7 +32,7 @@ while [[ $# -gt 0 ]]; do
 done
 
 if [[ x"$DJANGO_DEVELOPMENT" = x"False" ]]; then 
-	python "${ROOT}/birdsInMyArea/manage.py" collectstatic
+	python "${ROOT}/birdsInMyArea/manage.py" collectstatic --noinput
 else
 	GUNICORN_ARGS+=( --reload )
 	export DJANGO_DEVELOPMENT

@@ -1,0 +1,42 @@
+#!/bin/bash
+
+ROOT=$(dirname $(realpath $0))
+APP="birdsInMyArea"
+
+PODMAN_ARGS=(
+	-d
+	-p 5672:5672
+	-t
+	--rm
+)
+
+RABBITMQ_ID=$(podman run "${PODMAN_ARGS[@]}" rabbitmq:alpine)
+podman ps --filter id="${RABBITMQ_ID}" --format="RabbitMQ Container: {{.ID}} {{.Names}} {{.Ports}}"
+
+sleep 30
+
+BEAT_ARGS=(
+# 	--loglevel=INFO
+	--detach
+)
+
+WORKER_ARGS=(
+	-Q inat
+	-c 8
+	-E
+#	--autoscale=20,2
+	--loglevel=INFO
+)
+
+DJANGO_DEVELOPMENT=True
+SECRET_KEY_BIRDS=$(gpg --gen-random 1 80| base64)
+
+export DJANGO_DEVELOPMENT
+export SECRET_KEY_BIRDS 
+
+cd "${ROOT}"/"${APP}"
+celery -A "${APP}" beat "${BEAT_ARGS[@]}"
+celery -A "${APP}" worker "${WORKER_ARGS[@]}"
+
+killall celery
+podman stop "${RABBITMQ_ID}"

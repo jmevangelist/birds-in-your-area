@@ -21,29 +21,35 @@
 			<div class="position-relative">
 				<div id="map" class="map mobile-70" class="position-absolute z-0"></div>
 				<div style="display: none;">
-			      <div id="obs-info" class="card shadow-sm" style="max-width: 20em">
-			        <img id="obs-img" class="card-img-top" style="height: 15em; object-fit: cover"/>
-			  		<p class="card-text mb-0 text-center" style="font-size: xx-small;"><small class="text-body-secondary" id="obs-attribution"></small></p>
+			      <div id="obs-info" class="card shadow-sm" style="width: 19em; max-height: 32em">
+			        <img class="card-img-top img-fluid" loading="lazy" style="height: auto; max-height: 25em !important; object-fit: cover"/>
+			        <audio controls class="z-1 position-relative"></audio>
+			  		<p class="card-text mb-0 text-center obs-attribution" style="font-size: xx-small;"><small class="text-body-secondary"></small></p>
 			  		<div class="card-img-overlay p-1">
-			  			<button id="obs-button" class="btn btn-primary btn-sm position-absolute" style="right: 0.5em"><i class="bi bi-chevron-double-right"></i></button>
+			  			<button class="btn btn-primary btn-sm position-absolute obs-next" style="right: 0.5em"><i class="bi bi-chevron-double-right"></i></button>
 			  		</div>
-			        <div class="card-body p-2 pt-0 row">
-			        	<div class="col">
-				       		<p class="mb-0 fw-bold" style="font-size: smaller" id="obs-name"></p>
-				       		<p class="mb-0 position-relative" style="font-size: x-small" id="observer" href="#" target="_blank"></p>
-				       	</div>
-			       		<button id="obs-button-copyright" class="col-2 btn btn-primary btn-sm position-relative"><i class="bi bi-chevron-double-right"></i></button>
+			        <div class="card-body p-2 pt-0 row overflow-scroll">
+			       		<p class="mb-0 fw-bold obs-name" style="font-size: smaller"></p>
+			       		<div class="mb-0 position-relative obs-description" style="font-size: smaller" href="#" target="_blank"></div>
 			       	</div>
 			      </div>
 			    </div>
 				<div class="position-absolute z-1 top-0 m-2 w-50" id="searchPlaces" style="left: 2em">
 					<div class="input-group input-group-sm" >
-						<input class="form-control" list="placesOptions" id="placesDataList" placeholder="Fly to...">
+						<input class="form-control" list="placesOptions" id="placesInput" placeholder="Fly to...">
 						<button class="btn btn-primary" onClick="selectPlace()" type="button"><i class="bi bi-compass"></i></button>
 					</div>
 					<datalist id="placesOptions"></datalist>
 				</div>
-				<div class="position-absolute z-1 top-0 end-0 m-2" >
+				<div class="toast position-absolute z-2 align-items-center top-50 start-50 translate-middle-x" id="resultsToast" role="alert" aria-live="assertive" aria-atomic="true">
+				  <div class="d-flex">
+				    <div class="toast-body" id="toastMessage">
+				      Hello, world! This is a toast message.
+				    </div>
+				    <button type="button" class="btn-close me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+				  </div>
+				</div>
+				<div class="position-absolute z-1 top-0 end-0 m-2 map-control">
 					<div class="btn-group" style="visibility: hidden" id="search">
 						<button  type="button" id="categoryPicker" dropdown-toggle data-bs-toggle="dropdown" class="btn btn-primary btn-sm">
 							{{category | title}}?
@@ -67,9 +73,9 @@
 				</div>
 			</div>
 		</div>
-		<div class="col-md-3 order-md-1 mobile-30 overflow-scroll pt-1" data-link="{% url 'birds:side' %}" id="side-panel">
+		<div class="col-md-3 order-md-1 mobile-30 overflow-scroll pt-1" data-link="{% url 'birds:species' %}" id="species-panel">
 		</div>
-		<div class="col-md-3 order-md-1 mobile-30 searching" id="side-panel-spinner">
+		<div class="col-md-3 order-md-1 mobile-30 searching" id="species-panel-spinner">
 			<div class="d-flex min-vh-100 justify-content-center align-items-center">
 				<div class="spinner-grow spinner-grow text-primary" role="status">
 				  <span class="visually-hidden">Loading...</span>
@@ -93,7 +99,7 @@
     var obs_url = "{% url 'birds:get_obs' %}"
 </script>
 
-<script src="{% static 'birds/colors.js' %}"></script>
+<script src="{% static 'birds/mapStyles.js' %}"></script>
 <script src="{% static 'birds/main.js' %}"></script>
 <script>loadMap('{{lat}}', '{{lng}}', '{{z}}', '{{category}}')</script>
 

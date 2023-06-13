@@ -1,17 +1,14 @@
-#obs-button-copyright{
-  height: 2em;
-  top:1em;
-  right: 0.5em;
-  max-width: 2.5em;  
+.bw {
+  filter: grayscale(100%);
 }
 
-.center-to-loc {
+.geolocate {
   left: .5em;
   top: 4em;
   background-color: white; 
 }
 
-.ol-touch .center-to-loc {
+.ol-touch .geolocate {
   top: 4em;
 }
 
@@ -44,4 +41,17 @@
 @media (min-width: 768px) {
   .mobile-70 {height: 100vh}
   .mobile-30 {height: 100vh}
+}
+
+
+figure {
+  margin: 0
+}
+
+.blockquote-footer {
+  margin-bottom: 0;
+}
+
+.blockquote {
+  font-size: small !important;
 }

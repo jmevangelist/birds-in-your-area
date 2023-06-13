@@ -8,6 +8,11 @@ iNaturalist observation map for casual birders and critter enjoyers.
 * Bootstrap 5
 * OpenLayers
 * iNaturalist API
+* Celery
+
+## What's in here?
+* extended Openlayers control class that integrates geolocation and device orientation 
+* API call throttling via Celery & RabbitMQ 
 
 ## Setup
 1. Clone the repo
@@ -40,12 +45,18 @@ certtool -s --load-privkey key.pem --no-text --outfile=cert.pem
 #For "prod" mode via Gunicorn
 ./run
 
-# parameters
+# options
 # --dev		dev mode
 # --django 	run Django development server
 ```
 
+6. (Optional-for throttling iNaturalist API calls) Run Celery & RabbitMQ
+```bash
+./runCelery
+```
+
 
 ## Todo
-- [ ] Celery integration to throttle number of requests to iNat API
+- [/] Celery integration to throttle number of requests on iNat API
+- [ ] Celery as a service
 - [ ] Species info page

@@ -8,5 +8,6 @@ include/
 lib64
 __pycache__/
 birdsInMyArea/static/
+birdsInMyArea/celerybeat-schedule
 cert.pem
 key.pem

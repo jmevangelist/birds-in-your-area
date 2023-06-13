@@ -1,12 +1,12 @@
 from django.shortcuts import render
-from django.http import HttpResponse, JsonResponse, HttpResponseNotFound
+from django.http import HttpResponse, JsonResponse, HttpResponseNotFound, FileResponse
 from django.template import loader
 from itertools import groupby
 from .categories import iconicTaxa
 from . import defaults
 from django.views.decorators.cache import cache_page
 import re
-import requests 
+from .inat import observations, observation_tiles, UTFGrid
 
 
 def index(request):
@@ -39,9 +39,11 @@ def find(request,category=defaults.category,lat = defaults.lat,lng = defaults.ln
 
 @cache_page(60 * 15)
 def get_obs(request):
+
 	category = request.GET.get("category",defaults.category).lower()
 	page = request.GET.get("page",1)
 	extent = request.GET.get("extent")
+	zoom = request.GET.get("zoom")
 	bbox = extent.split(',')
 
 	payload = defaults.payload.copy()
@@ -50,18 +52,16 @@ def get_obs(request):
 	payload['nelng'] = bbox[2]
 	payload['swlat'] = bbox[1]
 	payload['swlng'] = bbox[0]
-	payload['iconicTaxa'] = iconicTaxa.get(category)
+	payload['iconic_taxa'] = iconicTaxa.get(category)
 	payload['page'] = page
 
-	api_url = "https://api.inaturalist.org/v1/observations"	
+	data = observations(payload)
 
-	response = requests.get(api_url,params=payload)
-	if response.status_code != requests.codes.ok:
+	if not data:
 		return JsonResponse({})
 
-	total_results = response.json()['total_results']
-	obs = response.json()['results']
-
+	total_results = data['total_results']
+	obs = data['results']
 	obs_by_species = {}
 
 
@@ -69,29 +69,36 @@ def get_obs(request):
 		return k['taxon']['min_species_taxon_id']
 
 	obs = sorted(obs, key=key_func)
+	all_obs = []
 
 	for key,value in groupby(obs, key_func):
-		list_of_obs = map(lambda o: {'location': o['geojson']['coordinates'],
+		list_of_obs = map(lambda o: { 'taxon_id': key,
+			'location': o['geojson']['coordinates'],
 			'time_observed_at': o['time_observed_at'] or o['observed_on_string'],
 			'uri': o['uri'],
 			'observer': o['user']['name'] or o['user']['login'] or 'anonymous',
-			'photos': o['observation_photos'][0]['photo']['url'],
-			'attribution': o['observation_photos'][0]['photo']['attribution'],
-			'name': o['taxon'].get('preferred_common_name',o['taxon'].get('name',category)) } ,list(value))
+			'photos': o['observation_photos'][0]['photo']['url'] if o['observation_photos'] else '',
+			'dimensions': o['observation_photos'][0]['photo']['original_dimensions'] if o['observation_photos'] else '',
+			'attribution': o['observation_photos'][0]['photo']['attribution'] if o['observation_photos'] else ''
+				or o['sounds'][0]['attribution'] if o['sounds'] else '',
+			'name': o['taxon'].get('preferred_common_name',o['taxon'].get('name',category)), 
+			'description': o['description'] or '',
+			'sound': o['sounds'][0]['file_url'] if o['sounds'] else '' }, list(value))
 		obs_by_species[key] = list(list_of_obs)
-
+		all_obs.extend(obs_by_species[key])
 		
 	context = {
 		'total_results': total_results,
 		'page': page,
-		'obs_by_species': obs_by_species
+		'obs_by_species': obs_by_species,
+		'all_obs': all_obs
 	}
 
 	return JsonResponse(context)
 
 
 @cache_page(60 * 15)
-def side(request):
+def species(request):
 
 	extent = request.GET.get("extent")
 	category = request.GET.get("category",defaults.category).lower()
@@ -103,24 +110,52 @@ def side(request):
 	payload['nelng'] = bbox[2]
 	payload['swlat'] = bbox[1]
 	payload['swlng'] = bbox[0]
-	payload['iconicTaxa'] = iconicTaxa.get(category)
+	payload['iconic_taxa'] = iconicTaxa.get(category)
+	payload['per_page'] = 500
 
-	api_url = "https://api.inaturalist.org/v1/observations/species_counts"
-	response = requests.get(api_url,params=payload)
-	if response.status_code != requests.codes.ok:
-		return render(request,"birds/side.html",{"bird_list": []})
-	
-	species = response.json()['results']
 
-	for key,value in enumerate(species):
-		species[key]['taxon']['default_photo']['attribution'] = re.sub(r', uploaded by.*','',species[key]['taxon']['default_photo']['attribution'])
-		
-	context = {
-		"bird_list": species,
-		"category": category
-	}
+	data = observations(payload,['species_counts'])
 
-	return render(request,"birds/side.html",context)
+	context = {'category': category}
+
+	if not data:
+		context['bird_list'] = {}
+	else:
+		species = data['results']
+
+		total_obs = 0
+		for key,value in enumerate(species):
+			species[key]['taxon']['default_photo']['attribution'] = re.sub(r', uploaded by.*','',species[key]['taxon']['default_photo']['attribution'])
+			total_obs += value['count']
+
+		context['species_count'] = data['total_results']
+		context['total_obs'] = total_obs
+		context['bird_list'] = species
+
+	return render(request,"birds/species.html",context)
 
 def about(request):
 	return render(request,"birds/about.html",{})
+
+@cache_page(60 * 15)
+def heatmap(request,z,x,y):
+
+	category = request.GET.get("category",defaults.category).lower()
+
+	payload = defaults.payload.copy()
+	payload['iconic_taxa'] = iconicTaxa.get(category)
+
+	ret = observation_tiles(payload,request.path.split('/'))
+
+	return HttpResponse(ret, content_type="image/png")
+
+@cache_page(60 * 15)
+def heatmap_json(request,z,x,y):
+	category = request.GET.get("category",defaults.category).lower()
+
+	payload = defaults.payload.copy()
+	payload['iconic_taxa'] = iconicTaxa.get(category)
+
+	ret = UTFGrid(payload,request.path.split('/'))
+
+	return HttpResponse(ret, content_type="image/png")
