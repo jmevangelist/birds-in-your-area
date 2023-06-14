@@ -12,8 +12,10 @@ urlpatterns = [
     path("species", views.species, name="species" ),
     path("about", views.about, name="about"),
     path("get_obs", views.get_obs, name="get_obs"),
-    path("heatmap/<str:z>/<str:x>/<str:y>.png", views.heatmap, name="heatmap"),
-    path("heatmap_json/<int:z>/<int:x>/<int:y>.grid.json", views.heatmap_json, name="heatmap_json")
+    path("heatmap/<str:z>/<str:x>/<str:y>.png", views.obs_tiles, name="tiles_heatmap"),
+    path("points/<str:z>/<str:x>/<str:y>.png", views.obs_tiles, name="tiles_points"),
+    path("heatmap/<int:z>/<int:x>/<int:y>.grid.json", views.utf_grid, name="json_heatmap"),
+    path("points/<int:z>/<int:x>/<int:y>.grid.json", views.utf_grid, name="json_points")
 ]
 
 

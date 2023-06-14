@@ -71,7 +71,7 @@ def tasker(params,path,method,return_type):
 	except CeleryTimeoutError:
 		logging.warning(timeStamp() + 'task ' + task['id'] + ' timeout'  )
 	except calliNatAPI.OperationalError as exc:
-		print(timeStamp() + str(params['page']))
+		# print(timeStamp() + str(params['page']))
 		logging.error('Sending task raised: ' + str(exc))
 	except Exception as e:
 		logging.error(e)

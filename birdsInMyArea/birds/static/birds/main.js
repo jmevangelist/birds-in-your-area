@@ -269,11 +269,25 @@ class featureCardOverlay extends ol.Overlay {
 
 	update(feature){
 
+		if(!feature.get('name')){
+			let retrieveMetaData = feature.get('retrieveMetaData')
+			if(retrieveMetaData){
+				let index = this.currentFeatureIndex
+				retrieveMetaData(feature.get('id')).then(f =>{
+					if(index == this.currentFeatureIndex){
+						this.update(f)
+					}
+				})
+			}
+		}
+
 		this.imgElement.src = ""
-		this.nameElement.innerHTML = feature.get('name')
-    	this.descriptionElement.innerHTML = feature.get('description')
+		this.nameElement.innerHTML = feature.get('name') ?? '<div class="spinner-grow spinner-grow-sm" role="status" aria-hidden="true"></div>'+
+			'<div class="spinner-grow spinner-grow-sm text-primary" role="status" aria-hidden="true"></div>' +
+			'<div class="spinner-grow spinner-grow-sm text-secondary" role="status" aria-hidden="true"></div>'
+    	this.descriptionElement.innerHTML = feature.get('description') ?? ''
     	this.descriptionElement.href = feature.get('uri')
-    	this.attrElement.innerHTML = feature.get('attribution')
+    	this.attrElement.innerHTML = feature.get('attribution') ?? "We're throttling requests and heavily caching data"
 
     	if(this.imgElement){
 	        if(feature.get('photos')){
@@ -306,6 +320,7 @@ class featureCardOverlay extends ol.Overlay {
 		    }
 		}
 
+
 		if(this.autoFocusKeyID){
 			let focusElement 
 			if(this.autoFocusContainer){
@@ -333,6 +348,7 @@ class featureCardOverlay extends ol.Overlay {
 	next(){
 		this.currentFeatureIndex++
 		this.currentFeatureIndex = this.currentFeatureIndex % this.features.length
+		this.clearMedia()
 		this.update(this.features[this.currentFeatureIndex])
 	}
 
@@ -358,6 +374,7 @@ function createFeatures(coords,color){
 		}
 		
 		let f = new ol.Feature({
+			id: coords[i].id,
 			geometry: new ol.geom.Point(ol.proj.fromLonLat(coords[i].location)),
 			name: coords[i].name,
 			color: color,
@@ -450,10 +467,8 @@ async function getObs(url,signal){
 	}
 
 	let obs = await obs_data.json()
-	let allObs = []
 
 	let features = createFeatures(obs.all_obs,colors[color],key)
-	allObs = allObs.concat(features)
 	obsSource.addFeatures(features)
 	for (var key in obs.obs_by_species){
 		taxonId[key] = true
@@ -511,10 +526,9 @@ function showToast(species_count,total_obs){
 	const toastBootstrap = bootstrap.Toast.getOrCreateInstance(toast,{autohide: true, delay: 10000})
 	const toastMessage = document.getElementById('toastMessage')
 
-	let msg = species_count + ' unique species of ' + category + ' in ' + total_obs + ' observations!'
+	let msg = species_count + ' unique species of ' + category + '!'
 	if(total_obs > 3000){
 		msg = msg + "<br/>Naturalists have been busy here!"
-		msg = msg + "<br/>We're mapping only 3000 out of the " + total_obs
 		msg = msg + '<br/>Head over at <a href="https://www.inaturalist.org/" target="_blank">iNaturalist</a> to see more.'
 	}else if(total_obs == 0){
 		msg = 'Have you seen them? Be a <a href="https://www.inaturalist.org/" target="_blank">Naturalist</a> :)'
@@ -541,7 +555,7 @@ async function searchForBirds(category,extent) {
 
 	var html = await response.text()
 	document.getElementById('species-panel').innerHTML = html;
-	setPanelListeners()	
+//	setPanelListeners()	
 
 	document.getElementById('species-panel-spinner').style.display = 'none'
 	document.getElementById('species-panel').style.display = 'inline-block'
@@ -558,13 +572,6 @@ async function searchForBirds(category,extent) {
 
 	taxonId.length = 0
 	styleCache.length = 0
-	let getObsArr = []
-
-	for(let page = 1; page<= Math.ceil(total_obs/200) && page<=15 ; page++ ){
-		getObsArr.push(getObs(url+page,signal))
-	}
-
-	await Promise.all(getObsArr)
 
 	document.getElementById('map-spinner').style.display = 'none'
 	document.getElementById('search').style.visibility = 'visible'
@@ -605,8 +612,20 @@ function search() {
 	heatmap_source.setUrl(source_url)
 	heatmapLayer.setExtent(extent)
 
+	points_source.setUrl(points_url + '?category=' + category )
+	pointsLayer.setExtent(extent)
+
+	grid = {} 
+	isMapLoaded = true
+
+	heatmapjsonLayer.setExtent(extent)
+
 	extent = ol.proj.transformExtent(extent, 'EPSG:3857', 'EPSG:4326');
 	extent = extent.map(x => Math.round((x + Number.EPSILON) * 100000) / 100000)
+
+	heatmapjsonLayer.setSource(createUTFSource({extent:extent}))
+//	map.once('rendercomplete',()=>{isMapLoaded = false})
+
 	coord = coord.map(x => Math.round((x + Number.EPSILON) * 100000)/ 100000)
 	zoom = Math.round((zoom + Number.EPSILON) * 100)/100
 
@@ -656,10 +675,119 @@ function loadMap(lat,long,z,cat) {
 
 }
 
+function convertGridSourceToVector(){
+	let a = heatmapjsonLayer.getSource()
+	let update = {}
+	for(const [key,value] of Object.entries(a.tileCache.entries_ )){ 
+		update = Object.assign(update,value.value_.data_)
+	}
+
+	for(const [key,value] of Object.entries(update)){
+		if (!grid[key]){
+			
+			grid[key] = {
+				id: value.id,
+				location: [value.longitude,value.latitude]
+			}
+			
+			let f = new ol.Feature({
+				id: value.id,
+				geometry: new ol.geom.Point(ol.proj.fromLonLat([value.longitude,value.latitude])),
+				retrieveMetaData: retrieveObsData
+			})
+			f.setId(value.id)
+			obsSource.addFeature(f)
+
+		}
+	}
+
+}
+
+function obsSourceSetProperties(data){
+	
+	let prop = {
+		name: data.name,
+		color: color,
+		datetimeObserved: data.time_observed_at,
+		uri: data.uri,
+		observer: data.observer,
+		photos: data.photos.replace('square','medium'),
+		dimensions: data.dimensions,
+		attribution: data.attribution,
+		taxonId: data.taxonId,
+		sound: data.sound,
+		description: data.description
+	}
+	let f = obsSource.getFeatureById(data.id)
+	f.setProperties(prop)
+
+	return f
+}
+
+async function retrieveObsData(id){
+
+	if(obsMetaData[id]){
+		return obsSourceSetProperties(obsMetaData[id])
+	}
+
+	let IDsWithoutMetaData = [id]
+	grid[id]['status'] = 'retrieving'
+
+	for(const [key,value] of Object.entries(grid)){
+		if(!value['status'] && !obsMetaData[key] ){
+			IDsWithoutMetaData.push(key)
+			grid[key]['status'] = 'retrieving'
+		}
+		if(IDsWithoutMetaData.length>=200){
+			break
+		}
+	}
+
+	let url = obs_url + '?id=' + IDsWithoutMetaData
+	let obs_data = await fetch(url);
+	if (!obs_data.ok){
+		throw new Error('Failed to load: ' + url + "\nStatus: " + obs_data.status) 
+	}
+
+	let obs = await obs_data.json()
+	data = obs.all_obs	
+
+	for(let i=0; i<data.length; i++){
+		let prop = {
+			id: data[i].id,
+			name: data[i].name,
+			color: color,
+			datetimeObserved: data[i].time_observed_at,
+			uri: data[i].uri,
+			observer: data[i].observer,
+			photos: data[i].photos.replace('square','medium'),
+			dimensions: data[i].dimensions,
+			attribution: data[i].attribution,
+			taxonId: data[i].taxon_id,
+			sound: data[i].sound,
+			description: '<figure><blockquote class="blockquote text-start"><p>'+data[i].description+ '</p>'+
+				'</blockquote><figcaption class="blockquote-footer text-end">'+
+				data[i].observer + ', <cite>'+ (new Date(data[i].time_observed_at)).toDateString() +
+				'</cite></figcaption></figure>'
+		}
+		obsMetaData[data[i].id] = prop
+	}
+
+	let f = obsSourceSetProperties(obsMetaData[id])
+
+	return f 
+}
+
 var controller 	//controller for fetch abort
 var color = 0 	
 var category = 'birds'
+var obsMetaData = {}
+var grid = {} 
 
+// MAP
+const map = new ol.Map({ controls: ol.control.defaults.defaults({attribution: false})})
+
+//Map View
 const view = new ol.View({
     center: [0, 0],
     zoom: 15,
@@ -667,17 +795,26 @@ const view = new ol.View({
     maxZoom: 22
   })
 
+map.setView(view)
+
+//Map Layers
+const osmLayer = new ol.layer.Tile({ source: new ol.source.OSM() }) //, className: 'bw' })
+
 const heatmap_source = new ol.source.XYZ();
 const heatmapLayer = new ol.layer.Tile({source: heatmap_source, opacity:0.8 });
 const heatmap_url = "/heatmap/{z}/{x}/{y}.png"
-const obsSource = new ol.source.Vector({})
 
+const points_source = new ol.source.XYZ();
+const pointsLayer = new ol.layer.Tile({source: points_source, opacity:1 });
+const points_url = "/points/{z}/{x}/{y}.png"
+
+const obsSource = new ol.source.Vector({})
 const taxonId = []
 const clusterSource = new ol.source.Cluster({
 		attributions: '<a href="https://www.inaturalist.org">iNaturalist</a>',
-		distance: 40,
+		distance: 35,
 		source: obsSource,
-		geometryFunction: function(feature){
+/*		geometryFunction: function(feature){
 
 			if(taxonId[feature.get('taxonId')]){
 				return feature.getGeometry()
@@ -685,12 +822,39 @@ const clusterSource = new ol.source.Cluster({
 				return null
 			}
 
-		}
+		} */
 	});
 
 const obsLayer = new ol.layer.Vector({source: clusterSource, style: clusterStyle})
-const osmLayer = new ol.layer.Tile({ source: new ol.source.OSM() }) //, className: 'bw' })
 
+function createUTFSource(options){
+	const heatmapjson_url = "/points/{z}/{x}/{y}.grid.json"
+	let url = heatmapjson_url + '?category=' + category 
+	if(options){
+		if(options.extent){
+			url += '&extent=' + options.extent
+		}
+	}
+	let source = new ol.source.UTFGrid({ 
+		tileJSON: {	
+			'grids': [url],
+		} 
+	})
+	console.log('creating UTFSource with url: ' + url)
+	return source
+}
+
+const heatmapjsonLayer = new ol.layer.Tile({source: createUTFSource() })
+
+
+
+
+heatmapjsonLayer.on('postrender', convertGridSourceToVector)
+
+map.setLayers([osmLayer, heatmapLayer, obsLayer, heatmapjsonLayer])
+
+
+//Map overlays
 const infoOverlay = new featureCardOverlay({
 	element: document.getElementById('obs-info'),
 	offset: [5, 5],
@@ -699,11 +863,7 @@ const infoOverlay = new featureCardOverlay({
 	autoFocusKeyID: 'taxonId'
 })
 
-const map = new ol.Map({ controls: ol.control.defaults.defaults({attribution: false}), 
-	layers: [osmLayer, heatmapLayer, obsLayer],
-	view: view,
-	overlays: [infoOverlay]
-})
+map.addOverlay(infoOverlay)
 
 //Map controls
 
@@ -724,7 +884,6 @@ map.addControl(new ol.control.Attribution({
 map.addControl(new searchPlacesControl(document.getElementById('searchPlaces')))
 
 //Map Events
-
 let prevFeatureCluster = null;
 function showCards(evt){
 
@@ -741,10 +900,12 @@ function showCards(evt){
 			infoOverlay.clearMedia()
 			prevFeatureCluster.setStyle()
 		}
-		features.setStyle(highlightIconStyles[category.toLowerCase()]);
-		infoOverlay.setFeatures(features.get('features'))
-    	infoOverlay.setPosition(features.getGeometry().getCoordinates())
-     	prevFeatureCluster = features
+		if(prevFeatureCluster != features){
+			features.setStyle(highlightIconStyles[category.toLowerCase()]);
+			infoOverlay.setFeatures(features.get('features'))
+	    	infoOverlay.setPosition(features.getGeometry().getCoordinates())
+	     	prevFeatureCluster = features
+	    }
 
   	}else if(prevFeatureCluster && evt.type=='click'){ //no feature on pointer
   		prevFeatureCluster.setStyle()
@@ -755,3 +916,20 @@ function showCards(evt){
 
 map.on('pointermove', showCards)
 map.on('click', showCards)
+
+// map.on('pointermove', function (evt) {
+//   if (evt.dragging) {
+//     return;
+//   }
+//   const coordinate = map.getEventCoordinate(evt.originalEvent);
+//   const viewResolution = view.getResolution();
+//   heatmapjsonLayer.getSource().forDataAtCoordinateAndResolution(
+//     coordinate,
+//     viewResolution,
+//     function (data) {
+//     	if(data){
+// 	    	console.log(data)
+// 	    }
+//     }
+//   );
+// });

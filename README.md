@@ -13,6 +13,7 @@ iNaturalist observation map for casual birders and critter enjoyers.
 ## What's in here?
 * extended Openlayers control class that integrates geolocation and device orientation 
 * API call throttling via Celery & RabbitMQ 
+* UTFGrid for lazy loading Vector Source in OpenLayers
 
 ## Setup
 1. Clone the repo
@@ -57,6 +58,8 @@ certtool -s --load-privkey key.pem --no-text --outfile=cert.pem
 
 
 ## Todo
-- [/] Celery integration to throttle number of requests on iNat API
+- [x] Celery integration to throttle number of requests on iNat API
+- [ ] Species filter
+- [ ] Map Layers
 - [ ] Celery as a service
 - [ ] Species info page

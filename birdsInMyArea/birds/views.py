@@ -40,19 +40,27 @@ def find(request,category=defaults.category,lat = defaults.lat,lng = defaults.ln
 @cache_page(60 * 15)
 def get_obs(request):
 
-	category = request.GET.get("category",defaults.category).lower()
+	category = request.GET.get("category") #,defaults.category).lower()
 	page = request.GET.get("page",1)
 	extent = request.GET.get("extent")
 	zoom = request.GET.get("zoom")
-	bbox = extent.split(',')
+	obs_id = request.GET.get("id")	
 
 	payload = defaults.payload.copy()
 
-	payload['nelat'] = bbox[3]
-	payload['nelng'] = bbox[2]
-	payload['swlat'] = bbox[1]
-	payload['swlng'] = bbox[0]
-	payload['iconic_taxa'] = iconicTaxa.get(category)
+	if extent:
+		bbox = extent.split(',')
+		payload['nelat'] = bbox[3]
+		payload['nelng'] = bbox[2]
+		payload['swlat'] = bbox[1]
+		payload['swlng'] = bbox[0]
+
+	if category:
+		payload['iconic_taxa'] = iconicTaxa.get(category)
+
+	if obs_id:
+		payload['id'] = obs_id
+	
 	payload['page'] = page
 
 	data = observations(payload)
@@ -72,7 +80,8 @@ def get_obs(request):
 	all_obs = []
 
 	for key,value in groupby(obs, key_func):
-		list_of_obs = map(lambda o: { 'taxon_id': key,
+		list_of_obs = map(lambda o: { 'id': o['id'],
+			'taxon_id': key,
 			'location': o['geojson']['coordinates'],
 			'time_observed_at': o['time_observed_at'] or o['observed_on_string'],
 			'uri': o['uri'],
@@ -88,9 +97,9 @@ def get_obs(request):
 		all_obs.extend(obs_by_species[key])
 		
 	context = {
-		'total_results': total_results,
-		'page': page,
-		'obs_by_species': obs_by_species,
+		# 'total_results': total_results,
+		# 'page': page,
+		# 'obs_by_species': obs_by_species,
 		'all_obs': all_obs
 	}
 
@@ -138,7 +147,7 @@ def about(request):
 	return render(request,"birds/about.html",{})
 
 @cache_page(60 * 15)
-def heatmap(request,z,x,y):
+def obs_tiles(request,z,x,y):
 
 	category = request.GET.get("category",defaults.category).lower()
 
@@ -150,12 +159,21 @@ def heatmap(request,z,x,y):
 	return HttpResponse(ret, content_type="image/png")
 
 @cache_page(60 * 15)
-def heatmap_json(request,z,x,y):
+def utf_grid(request,z,x,y):
 	category = request.GET.get("category",defaults.category).lower()
-
+	extent = request.GET.get("extent")
+	
 	payload = defaults.payload.copy()
 	payload['iconic_taxa'] = iconicTaxa.get(category)
+	
+	if extent:
+		bbox = extent.split(',')
+		payload['nelat'] = bbox[3]
+		payload['nelng'] = bbox[2]
+		payload['swlat'] = bbox[1]
+		payload['swlng'] = bbox[0]
+
 
 	ret = UTFGrid(payload,request.path.split('/'))
 
-	return HttpResponse(ret, content_type="image/png")
+	return JsonResponse(ret)
