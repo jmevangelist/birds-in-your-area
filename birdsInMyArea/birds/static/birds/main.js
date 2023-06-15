@@ -636,7 +636,7 @@ function convertGridSourceToVector(e){
 
 	let a = jsonLayer.getSource()
 	let update = {}
-	let ids = []
+	let features = []
 
 	for(const [key,value] of Object.entries(a.tileCache.entries_ )){
 		let points = value.value_.data_
@@ -663,11 +663,12 @@ function convertGridSourceToVector(e){
 				retrieveMetaData: retrieveObsData
 			})
 			f.setId(value.id)
-			ids.push(value.id)
-
-			obsSource.addFeature(f)
-
+			features.push(f)
 		}
+	}
+
+	if(features.length > 1){
+		obsSource.addFeatures(features)
 	}
 
 }
@@ -774,10 +775,15 @@ const view = new ol.View({
     minZoom: 6,
     maxZoom: 22
   })
-const osmLayer = new ol.layer.Tile({ source: new ol.source.OSM() }) //, className: 'bw' })
+
+const baseLayer = new ol.layer.Tile({ source: new ol.source.OSM() }) //, className: 'bw' })
+// const baseLayer = new ol.layer.Tile({ source: new ol.source.OGCMapTile({
+//         url: 'https://maps.gnosis.earth/ogcapi/collections/blueMarble/map/tiles/WebMercatorQuad',
+//       })})
+
 const map = new ol.Map({ 
 	controls: ol.control.defaults.defaults({attribution: false}),
-	layers: [osmLayer],
+	layers: [baseLayer],
 	target: 'map',
 	view: view
 })
@@ -795,7 +801,7 @@ const obsSource = new ol.source.Vector({})
 const taxonId = []
 const clusterSource = new ol.source.Cluster({
 		attributions: '<a href="https://www.inaturalist.org">iNaturalist</a>',
-		distance: 35,
+		distance: 40,
 		source: obsSource,
 /*		geometryFunction: function(feature){
 

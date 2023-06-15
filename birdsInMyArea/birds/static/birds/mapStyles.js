@@ -6,31 +6,60 @@ var colors = [
 
 const blankStyle = new ol.style.Style({})
 
-const styleCache = []
-function clusterStyle(feature) {
-    const size = feature.get('features').length;
-    let style = styleCache[size]
-    if (!style) {
-      style = new ol.style.Style({
+const crow = new ol.style.Style({
+	  image: new ol.style.Icon({
+	    src: '/static/birds/crow2.svg',
+	    crossOrigin: 'anonymous',
+	    scale: 0.03,
+	    opacity: 1
+	  })
+	})
+
+const genericStyle = new ol.style.Style({
         image: new ol.style.Circle({
           radius: 10,
           stroke: new ol.style.Stroke({
             color: '#fff',
           }),
           fill: new ol.style.Fill({
-            color: feature.get('features')[0].get('color') || '#3399CC',
+            color: '#3399CC',
           }),
-        }),
-        text: new ol.style.Text({
-          text: size.toString(),
-          fill: new ol.style.Fill({
-            color: '#fff',
-          }),
-        }),
+        })
       });
-      styleCache[size] = style;
-    }
-    return style;
+
+const srcRef = {
+	birds: '/static/birds/crow2.svg',
+	amphibians: '/static/birds/amphibian.svg',
+	fish: '/static/birds/fish.svg',
+	insects: '/static/birds/insect.svg',
+	mammals: '/static/birds/mammal.svg',
+	plants: '/static/birds/plant.svg',
+	spiders: '/static/birds/spider.svg',
+	reptiles: '/static/birds/reptile.svg',
+	mollusks: '/static/birds/mollusk.svg',
+	fungi: '/static/birds/fungi.svg'
+}
+
+const styleCache = []
+function clusterStyle(feature) {
+	const size = feature.get('features').length
+	const index = Math.ceil(Math.log10(size))
+	if(!styleCache[index]){styleCache[index] = {}}
+	if(!styleCache[index][category ?? 'birds']){
+		let scale = (0.04) + ((Math.ceil(Math.log10(size)))*0.01)
+		if(scale > 0.09){scale = 0.09}
+		let style = new ol.style.Style({
+			  image: new ol.style.Icon({
+			    src: srcRef[category ?? 'birds'],
+			    crossOrigin: 'anonymous',
+			    scale: scale,
+			    opacity: 1
+			  })
+			})
+		styleCache[index][category ?? 'birds'] = style
+	}
+
+	return styleCache[index][category ?? 'birds']
 }
 
 const highlightIconStyles = {
@@ -122,7 +151,7 @@ const highlightIconStyles = {
 	  image: new ol.style.Icon({
 	    src: '/static/birds/reptile.svg',
 	    crossOrigin: 'anonymous',
-	    scale: 1,
+	    scale: 0.06,
 	    opacity: 1,
 	    color: '#000',
 	    stroke: new ol.style.Stroke({

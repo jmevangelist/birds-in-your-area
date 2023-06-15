@@ -14,7 +14,7 @@
 	<div class="card mb-2 species_card" id="{{bird.taxon.id}}">
 		<div class="row g-0">
 			<div class="col-5 col-md-12">
-				<img src="{{bird.taxon.default_photo.medium_url}}" class="card-img-top" alt="...">
+				<img src="{{bird.taxon.default_photo.medium_url}}" width="{{bird.taxon.default_photo.original_dimensions.width}}" height="{{bird.taxon.default_photo.original_dimensions.height}}" class="card-img-top img-fluid" alt="...">
 				<div class="card-img-overlay" data-type="species_card" data-taxon-id="{{bird.taxon.id}}" data-id="{{forloop.counter}}"data-common-name="{{bird.taxon.preferred_common_name}}" style="padding: 0" >
 					<div class="position-absolute" style="right: 0.5em">
 					  <!-- <input class="form-check-input card-check" type="checkbox" data-taxon-id="{{bird.taxon.id}}" checked aria-label="..."> -->

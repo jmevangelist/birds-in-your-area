@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<svg
+   width="666.48505"
+   height="542.0564"
+   viewBox="0 0 666.48504 542.0564"
+   version="1.1"
+   id="svg106"
+   sodipodi:docname="crow2.svg"
+   inkscape:version="1.2.2 (b0a8486541, 2022-12-01)"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:svg="http://www.w3.org/2000/svg">
+  <defs
+     id="defs110" />
+  <sodipodi:namedview
+     id="namedview108"
+     pagecolor="#c2c2c2"
+     bordercolor="#000000"
+     borderopacity="0.25"
+     inkscape:showpageshadow="2"
+     inkscape:pageopacity="0"
+     inkscape:pagecheckerboard="0"
+     inkscape:deskcolor="#d1d1d1"
+     showgrid="false"
+     inkscape:zoom="0.4609375"
+     inkscape:cx="247.32203"
+     inkscape:cy="177.89831"
+     inkscape:window-width="1280"
+     inkscape:window-height="731"
+     inkscape:window-x="0"
+     inkscape:window-y="0"
+     inkscape:window-maximized="1"
+     inkscape:current-layer="layer1" />
+  <!--! Font Awesome Pro 6.4.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license (Commercial License) Copyright 2023 Fonticons, Inc. -->
+  <g
+     inkscape:groupmode="layer"
+     id="layer1"
+     inkscape:label="Layer 1"
+     transform="translate(-14.057875,-78.521807)">
+    <path
+       d="m 484.96594,93.521807 c -48.6,0 -88,39.400003 -88,88.000003 v 29.2 l -355.500008,273.4 c -14,10.8 -16.6,30.9 -5.9,44.9 10.7,14 30.9,16.6 44.9,5.9 l 74.600008,-57.4 h 133.1 l 46.6,113.1 c 5,12.3 19.1,18.1 31.3,13.1 12.2,-5 18.1,-19.1 13.1,-31.3 l -39.1,-94.9 h 40.9 c 1.1,0 2.1,0 3.2,0 l 46.6,113.2 c 5,12.3 19.1,18.1 31.3,13.1 12.2,-5 18.1,-19.1 13.1,-31.3 l -42,-102 c 80.7,-22.9 139.8,-97 139.8,-185 v -64 -8 l 80.5,-20.1 c 8.6,-2.1 13.8,-10.8 11.6,-19.4 -7.1,-28.5 -32.7,-48.5 -62.1,-48.5 h -50.1 c -16.2,-19.5 -40.6,-32.000003 -67.9,-32.000003 z m 0,64.000003 a 24,24 0 1 1 0,48 24,24 0 1 1 0,-48 z"
+       id="path104"
+       style="opacity:1;mix-blend-mode:normal;fill:#9614c7;fill-opacity:1;stroke:#ffffff;stroke-width:20;stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:none;stroke-opacity:1;paint-order:fill markers stroke" />
+  </g>
+</svg>
