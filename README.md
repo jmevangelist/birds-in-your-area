@@ -15,6 +15,10 @@ iNaturalist observation map for casual birders and critter enjoyers.
 * API call throttling via Celery & RabbitMQ 
 * UTFGrid for lazy loading Vector Source in OpenLayers
 
+## Prereq
+* podman
+* python3
+
 ## Setup
 1. Clone the repo
 ```bash
