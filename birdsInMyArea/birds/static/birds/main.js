@@ -348,7 +348,7 @@ class featureCardOverlay extends ol.Overlay {
 	next(){
 		this.currentFeatureIndex++
 		this.currentFeatureIndex = this.currentFeatureIndex % this.features.length
-		this.clearMedia()
+		//this.clearMedia()
 		this.update(this.features[this.currentFeatureIndex])
 	}
 
@@ -528,10 +528,9 @@ async function searchForBirds(category,extent) {
 	url = obs_url + '?category=' + category + '&extent=' + extent +'&page=' 
 
 	taxonId.length = 0
-	styleCache.length = 0
 
-	document.getElementById('map-spinner').style.display = 'none'
-	document.getElementById('search').style.visibility = 'visible'
+//	document.getElementById('map-spinner').style.display = 'none'
+//	document.getElementById('search').style.visibility = 'visible'
 
 	return true 
 }
@@ -569,9 +568,6 @@ function search() {
 	heatmap_source.setUrl(source_url)
 	heatmapLayer.setExtent(extent)
 
-	points_source.setUrl(points_url + '?category=' + category )
-	pointsLayer.setExtent(extent)
-
 	grid = []
 	jsonLayer.setExtent(extent)
 
@@ -582,6 +578,11 @@ function search() {
 
 	coord = coord.map(x => Math.round((x + Number.EPSILON) * 100000)/ 100000)
 	zoom = Math.round((zoom + Number.EPSILON) * 100)/100
+
+	map.once('rendercomplete',function(){
+		document.getElementById('map-spinner').style.display = 'none'
+		document.getElementById('search').style.visibility = 'visible'
+	})
 
 	//search for birds on your location
 	searchForBirds(category,extent).then(r => {
@@ -641,6 +642,7 @@ function convertGridSourceToVector(e){
 	for(const [key,value] of Object.entries(a.tileCache.entries_ )){
 		let points = value.value_.data_
 		if(points){
+			
 			for(const [id,v] of Object.entries(points)){
 				points[id]['zxy'] = key
 			} 
@@ -650,7 +652,8 @@ function convertGridSourceToVector(e){
 
 	for(const [key,value] of Object.entries(update)){
 		if (!grid[key]){
-			
+
+
 			grid[key] = {
 				id: value.id,
 				location: [value.longitude,value.latitude],
@@ -667,7 +670,7 @@ function convertGridSourceToVector(e){
 		}
 	}
 
-	if(features.length > 1){
+	if(features.length){
 		obsSource.addFeatures(features)
 	}
 
@@ -817,7 +820,7 @@ const clusterSource = new ol.source.Cluster({
 const obsLayer = new ol.layer.Vector({source: clusterSource, style: clusterStyle})
 
 function createUTFSource(options){
-	const heatmapjson_url = "/points/{z}/{x}/{y}.grid.json"
+	const heatmapjson_url = "/heatmap/{z}/{x}/{y}.grid.json"
 	let url = heatmapjson_url + '?category=' + category 
 	if(options){
 		if(options.extent){

@@ -11,3 +11,4 @@ birdsInMyArea/static/
 birdsInMyArea/celerybeat-schedule
 cert.pem
 key.pem
+redis-data/

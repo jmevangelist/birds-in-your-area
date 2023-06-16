@@ -5,18 +5,22 @@ APP="birdsInMyArea"
 
 PODMAN_ARGS=(
 	-d
-	-p 5672:5672
-	-t
+	# -p 5672:5672
+	-p 6379:6379
+	-v "${ROOT}"/redis-data:/var/redis/data
 	--rm
 )
 
-RABBITMQ_ID=$(podman run "${PODMAN_ARGS[@]}" rabbitmq:alpine)
-podman ps --filter id="${RABBITMQ_ID}" --format="RabbitMQ Container: {{.ID}} {{.Names}} {{.Ports}}"
+# RABBITMQ_ID=$(podman run "${PODMAN_ARGS[@]}" rabbitmq:alpine)
+# podman ps --filter id="${RABBITMQ_ID}" --format="RabbitMQ Container: {{.ID}} {{.Names}} {{.Ports}}"
 
-sleep 30
+BROKER_ID=$(podman run "${PODMAN_ARGS[@]}" redis:alpine)
+podman ps --filter id="${BROKER_ID}" --format="Broker Container: {{.ID}} {{.Names}} {{.Ports}}"
+
+#sleep 30
 
 BEAT_ARGS=(
-# 	--loglevel=INFO
+ 	# --loglevel=INFO
 	--detach
 )
 
@@ -26,6 +30,7 @@ WORKER_ARGS=(
 	-E
 #	--autoscale=20,2
 	--loglevel=INFO
+	--detach
 )
 
 DJANGO_DEVELOPMENT=True
@@ -38,5 +43,5 @@ cd "${ROOT}"/"${APP}"
 celery -A "${APP}" beat "${BEAT_ARGS[@]}"
 celery -A "${APP}" worker "${WORKER_ARGS[@]}"
 
-killall celery
-podman stop "${RABBITMQ_ID}"
+# killall celery
+# podman stop "${BROKER_ID}"
