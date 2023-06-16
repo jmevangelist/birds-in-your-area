@@ -30,7 +30,6 @@ WORKER_ARGS=(
 	-E
 #	--autoscale=20,2
 	--loglevel=INFO
-	--detach
 )
 
 DJANGO_DEVELOPMENT=True
@@ -43,5 +42,5 @@ cd "${ROOT}"/"${APP}"
 celery -A "${APP}" beat "${BEAT_ARGS[@]}"
 celery -A "${APP}" worker "${WORKER_ARGS[@]}"
 
-# killall celery
-# podman stop "${BROKER_ID}"
+killall celery
+podman stop "${BROKER_ID}"
