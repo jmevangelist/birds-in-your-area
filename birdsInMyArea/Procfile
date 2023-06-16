@@ -1,4 +1,1 @@
-web: celery -A birdsInMyArea beat --detach
-&& celery -A birdsInMyArea -Q inat -c 8 --detach
-&& python manage.py collectstatic --noinput 
-&& gunicorn --workers 5 birdsInMyArea.wsgi
+web: celery -A birdsInMyArea beat --detach && celery -A birdsInMyArea -Q inat -c 8 --detach && python manage.py collectstatic --noinput && gunicorn --workers 5 birdsInMyArea.wsgi
