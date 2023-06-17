@@ -45,6 +45,7 @@ CELERY_RESULT_BACKEND = os.getenv('REDIS_URL')
 CELERY_TASK_SERIALIZER = 'json'
 CELERY_WORKER_CANCEL_LONG_RUNNING_TASKS_ON_CONNECTION_LOSS = True
 CELERY_TASK_TRACK_STARTED = True
+CELERY_RESULT_EXPIRES = 10
 
 REDIS_HOST = os.getenv('REDISHOST')
 REDIS_PORT = os.getenv('REDISPORT')
@@ -62,7 +63,7 @@ LOGGING = {
     },
     "root": {
         "handlers": ["console"],
-        "level": "INFO",
+        "level": "WARNING",
     },
 }
 

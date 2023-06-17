@@ -12,7 +12,7 @@ iNaturalist observation map for casual birders and critter enjoyers.
 
 ## What's in here?
 * extended Openlayers control class that integrates geolocation and device orientation 
-* API call throttling via Celery & RabbitMQ 
+* API call throttling via Celery & Redis 
 * UTFGrid for lazy loading Vector Source in OpenLayers
 
 ## Prereq
@@ -55,7 +55,7 @@ certtool -s --load-privkey key.pem --no-text --outfile=cert.pem
 # --django 	run Django development server
 ```
 
-6. (Optional-for throttling iNaturalist API calls) Run Celery & RabbitMQ
+6. (Optional-for throttling iNaturalist API calls) Run Celery & Redis
 ```bash
 ./runCelery
 ```

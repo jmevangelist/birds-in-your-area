@@ -38,8 +38,8 @@ app.conf.task_queues = [
 def token():
 	return 1
 
-@app.task
-def limit_tokens(ignore_result=True):
+@app.task(ignore_result=True)
+def limit_tokens():
 	a = r.ltrim('inat_tokens',0,50)
 	return a
 

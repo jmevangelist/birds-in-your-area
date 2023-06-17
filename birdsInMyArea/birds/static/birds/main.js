@@ -698,8 +698,9 @@ function obsSourceSetProperties(data){
 		description: data.description
 	}
 	let f = obsSource.getFeatureById(data.id)
-	f.setProperties(prop)
-
+	if(f){
+		f.setProperties(prop)
+	}
 	return f
 }
 
