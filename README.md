@@ -63,6 +63,8 @@ certtool -s --load-privkey key.pem --no-text --outfile=cert.pem
 
 ## Todo
 - [x] Celery integration to throttle number of requests on iNat API
+- [ ] Species album
+- [ ] Obs album
 - [ ] Species filter
 - [ ] Map Layers
 - [ ] Celery as a service

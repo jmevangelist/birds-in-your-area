@@ -62,6 +62,28 @@ function clusterStyle(feature) {
 	return styleCache[index][category ?? 'birds']
 }
 
+const orientationStyle = new ol.style.Icon({
+    src: '/static/birds/arrow.svg',
+    crossOrigin: 'anonymous',
+    scale: 0.05,
+    opacity: 1,
+    rotation: -(Math.PI/4)
+})
+
+const defaultGeoStyle = new ol.style.Style({
+	image: new ol.style.Circle({
+	      radius: 6,
+	      fill: new ol.style.Fill({
+	        color: '#3399CC',
+	      }),
+	      stroke: new ol.style.Stroke({
+	        color: '#fff',
+	        width: 2,
+	      }),
+	    }) 
+})
+
+
 const highlightIconStyles = {
 	birds: new ol.style.Style({
 	  image: new ol.style.Icon({

@@ -16,7 +16,6 @@ app = Celery('birdsInMyArea')
 # - namespace='CELERY' means all celery-related configuration keys
 #   should have a `CELERY_` prefix.
 
-#app.config_from_object('birdsInMyArea.celeryconfig')
 app.config_from_object('django.conf:settings', namespace='CELERY')
 
 if settings.DEBUG:
@@ -27,7 +26,6 @@ else:
 
 # Load task modules from all registered Django apps.
 app.autodiscover_tasks()
-#app.autodiscover_tasks(packages=['birds.apps.BirdsConfig'], related_name='inat', force=True)
 
 app.conf.task_queues = [
 	Queue('inat'),
