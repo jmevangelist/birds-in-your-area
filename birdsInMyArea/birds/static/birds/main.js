@@ -27,27 +27,8 @@ class GeoLocateControl extends ol.control.Control {
 	});
 
     const positionFeatureControl = new ol.Feature();
-
-    const orientationStyle = options.orientationStyle /*new ol.style.Icon({
-	    src: '/static/birds/arrow.svg',
-	    crossOrigin: 'anonymous',
-	    scale: 0.05,
-	    opacity: 1,
-	    rotation: -(Math.PI/4)
-	})*/
-
-    const Style = options.defaultGeoStyle /*new ol.style.Style({
-    	image: new ol.style.Circle({
-		      radius: 6,
-		      fill: new ol.style.Fill({
-		        color: '#3399CC',
-		      }),
-		      stroke: new ol.style.Stroke({
-		        color: '#fff',
-		        width: 2,
-		      }),
-		    }) 
-    })*/
+    const orientationStyle = options.orientationStyle 
+    const Style = options.defaultGeoStyle 
 
     const geoLayer = new ol.layer.Vector({
 	  source: new ol.source.Vector({
@@ -187,9 +168,14 @@ class searchPlacesControl extends ol.control.Control {
 
 		let searchString = this.input.value
 
+		this.button.children[0].classList.toggle('display-none')
+		this.button.children[1].classList.toggle('display-none')
+
 		let url = "https://nominatim.openstreetmap.org/search?format=geojson&q=" + searchString
 		const response = await fetch(url)
 		if(!response.ok){
+			this.button.children[0].classList.toggle('display-none')
+			this.button.children[1].classList.toggle('display-none')
 			throw new Error('Failed to load: '+ url)
 		}
 
@@ -203,24 +189,24 @@ class searchPlacesControl extends ol.control.Control {
 
 		this.datalist.innerHTML = ""
 
-		let strOptions = ""
 		for(let i=0; i<places.features.length; i++){
-//			document.createElement('option')
-			strOptions = strOptions + "<option value='" +places.features[i].properties.display_name+ "'"
-				+ ' data-lat="' +places.features[i].geometry.coordinates[1] + '"'
-				+ ' data-lng="' +places.features[i].geometry.coordinates[0] + '">'
+			let o = document.createElement('option')
+			o.setAttribute('value',places.features[i].properties.display_name)
+			o.setAttribute('data-lat',places.features[i].geometry.coordinates[1])
+			o.setAttribute('data-lng',places.features[i].geometry.coordinates[0])
+			this.datalist.append(o)
 		}
-
-		this.datalist.innerHTML = strOptions
+		this.button.children[0].classList.toggle('display-none')
+		this.button.children[1].classList.toggle('display-none')
 
 	}
 
 	selectPlace(){
 		if(this.datalist.firstChild && this.input.value != ""){
 			let dataset = this.datalist.firstChild.dataset
-			let locWebMerc = ol.proj.fromLonLat([dataset.lng,dataset.lat])
+			let coordinate = ol.proj.fromLonLat([dataset.lng,dataset.lat])
 	//		if(controller){ controller.abort() }
-			this.getMap().getView().animate({zoom: 10},{center: locWebMerc},{zoom: 13})		
+			this.getMap().getView().animate({zoom: 6},{center: coordinate},{zoom: 13})		
 			this.input.value = ""
 		}
 	}
@@ -523,16 +509,18 @@ async function searchForBirds(category,extent) {
 
 	showToast(species_count,total_obs)
 
-	//get observations
-	color = Math.floor(Math.random() * colors.length)
-	url = obs_url + '?category=' + category + '&extent=' + extent +'&page=' 
-
-	taxonId.length = 0
-
-//	document.getElementById('map-spinner').style.display = 'none'
-//	document.getElementById('search').style.visibility = 'visible'
+	document.getElementById('map-spinner').style.display = 'none'
+	document.getElementById('search').style.visibility = 'visible'
 
 	return true 
+}
+
+async function getObsPointsByExtent(category,extent){
+	osmSource.getTileGrid().forEachTileCoord(extent,
+		map.getView().getZoom(),
+		function(zxy){
+
+		})
 }
 
 function pickCategory(cat){
@@ -566,15 +554,15 @@ function search() {
 	let zoom = view.getZoom()
 
 	var extent = map.getView().calculateExtent(map.getSize());
+	search_extent = extent
 
 	let source_url = heatmap_url + '?category=' + category 
 	heatmap_source.setUrl(source_url)
 	heatmapLayer.setExtent(extent)
+	pseudoLayer.setExtent(extent)
 
 	extent = ol.proj.transformExtent(extent, 'EPSG:3857', 'EPSG:4326');
 	extent = extent.map(x => Math.round((x + Number.EPSILON) * 100000) / 100000)
-
-//	jsonLayer.setSource(createUTFSource({extent:extent}))
 
 	coord = coord.map(x => Math.round((x + Number.EPSILON) * 100000)/ 100000)
 	zoom = Math.round((zoom + Number.EPSILON) * 100)/100
@@ -582,8 +570,6 @@ function search() {
 	//search for birds on your location
 	searchForBirds(category,extent).then(r => {
 		//successful search: push link to history and set cookies
-		document.getElementById('map-spinner').style.display = 'none'
-		document.getElementById('search').style.visibility = 'visible'
 		url = load_url + '/' + category.toLowerCase() + '/@' + coord[1] + ',' + coord[0] + ',' + zoom + 'z'
 		window.history.pushState({'coord': coord, 'zoom': zoom},"", url)
 		document.cookie = "lat="+coord[1]+";path=/; SameSite=Strict;" 
@@ -623,55 +609,12 @@ function loadMap(lat,long,z,cat) {
 
 	map.once('loadend',(evt)=>{
 		map.addLayer(heatmapLayer)
+		map.addLayer(pseudoLayer)
 		map.addLayer(obsLayer)
-		// map.addLayer(jsonLayer)
 		search()
 	})	
 
 }
-
-// function convertGridSourceToVector(e){
-
-// 	let a = jsonLayer.getSource()
-// 	let update = {}
-// 	let features = []
-
-// 	for(const [key,value] of Object.entries(a.tileCache.entries_ )){
-// 		let points = value.value_.data_
-// 		if(points){
-			
-// 			for(const [id,v] of Object.entries(points)){
-// 				points[id]['zxy'] = key
-// 			} 
-// 			update = Object.assign(update,points)
-// 		}
-// 	}
-
-// 	for(const [key,value] of Object.entries(update)){
-// 		if (!grid[key]){
-
-
-// 			grid[key] = {
-// 				id: value.id,
-// 				location: [value.longitude,value.latitude],
-// 				zxy: value.zxy
-// 			}
-			
-// 			let f = new ol.Feature({
-// 				id: value.id,
-// 				geometry: new ol.geom.Point(ol.proj.fromLonLat([value.longitude,value.latitude])),
-// 				retrieveMetaData: retrieveObsData
-// 			})
-// 			f.setId(value.id)
-// 			features.push(f)
-// 		}
-// 	}
-
-// 	if(features.length){
-// 		obsSource.addFeatures(features)
-// 	}
-
-// }
 
 function obsSourceSetProperties(data){
 
@@ -776,21 +719,21 @@ var color = 0
 var category = 'birds'
 var obsMetaData = {}
 var grid = {}
-
+var search_extent
 
 // MAP
 const view = new ol.View({
     center: [0, 0],
     zoom: 15,
-    minZoom: 6,
-    maxZoom: 22
+    minZoom: 4,
+    maxZoom: 21
   })
 
 const osmSource = new ol.source.OSM()
-const baseLayer = new ol.layer.Tile({ source: osmSource }) //, className: 'bw' })
-// const baseLayer = new ol.layer.Tile({ source: new ol.source.OGCMapTile({
-//         url: 'https://maps.gnosis.earth/ogcapi/collections/blueMarble/map/tiles/WebMercatorQuad',
-//       })})
+const baseLayer = new ol.layer.Tile({ source: osmSource }) 
+// const tileGrid = ol.tilegrid.createXYZ()
+const pseudoSource = new ol.source.TileDebug()
+const pseudoLayer =  new ol.layer.Tile({ source: pseudoSource, opacity: 0 })
 
 const map = new ol.Map({ 
 	controls: ol.control.defaults.defaults({attribution: false}),
@@ -804,9 +747,9 @@ const heatmap_source = new ol.source.XYZ();
 const heatmapLayer = new ol.layer.Tile({source: heatmap_source, opacity:0.8 });
 const heatmap_url = "/heatmap/{z}/{x}/{y}.png"
 
-const points_source = new ol.source.XYZ();
-const pointsLayer = new ol.layer.Tile({source: points_source, opacity:1 });
-const points_url = "/points/{z}/{x}/{y}.png"
+// const points_source = new ol.source.XYZ();
+// const pointsLayer = new ol.layer.Tile({source: points_source, opacity:1 });
+// const points_url = "/points/{z}/{x}/{y}.png"
 
 const obsSource = new ol.source.Vector({})
 const taxonId = []
@@ -826,31 +769,6 @@ const clusterSource = new ol.source.Cluster({
 	});
 
 const obsLayer = new ol.layer.Vector({source: clusterSource, style: clusterStyle})
-
-// function createUTFSource(options){
-// 	const heatmapjson_url = "/points/{z}/{x}/{y}.grid.json"
-// 	let url = heatmapjson_url + '?category=' + category 
-// 	if(options){
-// 		if(options.extent){
-// 			url += '&extent=' + options.extent
-// 		}
-// 	}
-// 	let source = new ol.source.UTFGrid({ 
-// 		tileJSON: {	
-// 			'grids': [url],
-// 		} 
-// 	})
-
-// 	source.on('propertychange',function(e){
-// 		console.log(e)
-// 	})
-// 	console.log('creating UTFSource with url: ' + url)
-
-// 	return source
-// }
-
-// const jsonLayer = new ol.layer.Tile({source: createUTFSource() })
-// jsonLayer.on('postrender', convertGridSourceToVector)
 
 //Map overlays
 const infoOverlay = new featureCardOverlay({
@@ -917,146 +835,149 @@ function showCards(evt){
 map.on('pointermove', showCards)
 map.on('click', showCards)
 
-var text = {}
-function updateLoadingText(evt){
-	const loadingText = document.getElementById('loading-text')
+class MapProgressBar{
+	loadingDict = {}
+
+	constructor(options){
+		this.loadingText = options.loadingText 
+		this.progressBar = options.progressBar
+		this.loadingDict = {}
+	}
+
+	//resource = { key: key, loading: BOOLEAN }
+	update(resource){
+
+		if(this.loadingDict[resource.key]){
+			this.loadingDict[resource.key].loading = resource.loading 
+		}else{
+			this.loadingDict[resource.key] = resource
+		}
+
+		if(this.loadingText){
+			let newText = Object.values(this.loadingDict).filter(a => a.loading).map(x => x.key)
+			this.loadingText.innerText = newText.join('\n')		
+		}
+
+		if(this.progressBar){
+			this.progressBar.style.visibility = 'visible'
+			this.progressBar.parentElement.style.visibility = 'visible'
+			this.progressBar.style.width = this.getProgress() + '%'
+		}
+
+		if(Object.values(this.loadingDict).filter(a => a.loading).length == 0){
+			this.loadingDict = {} 
+			if(this.progressBar){
+				this.progressBar.style.visibility = 'hidden'
+				this.progressBar.parentElement.style.visibility = 'hidden'
+			}
+		}
+
+
+	}
+
+	getProgress(){
+		let total = Object.values(this.loadingDict).length
+		let done = Object.values(this.loadingDict).filter(a => !a.loading).length 
+		return ((done/total)*100)
+	}
+
+	getPending(){
+		return Object.values(this.loadingDict).filter(a => a.loading).map(x => x.key)
+	}
+
+}
+
+const cProgress = new MapProgressBar({progressBar : document.getElementById('map-progress-bar')})
+
+function updateProgress(evt){
 
 	switch (evt.type){
-		case 'loadstart':
-			text['loading map resources...'] = { loading:true, text: 'loading map resources...' }
-			break
-		case 'loadend':
-			if(text['loading map resources...']){
-				text['loading map resources...'].loading = false
-			}
-			break
 		case 'tileloadstart':
-			if(evt.tile.src_){
-				text[evt.tile.src_] = { loading:true, text: evt.tile.src_ }
-			}else{
-				text[evt.tile.url_] = { loading:true, text: evt.tile.url_ }
-			}
+			cProgress.update({ loading:true, key: evt.tile.src_  })
 			break
 		case 'tileloadend':
-			if(evt.tile.src_){ text[evt.tile.src_].loading = false }
-			else{ 
-				if(text[evt.tile.url_]){
-					text[evt.tile.url_].loading = false 
-				}else{
-//					console.log(evt.tile.url_)
-				}
-			}
+			cProgress.update({ loading:false, key: evt.tile.src_  })
 			break
 		default: 
 			console.log(evt.type)
-
-	}
-
-	if(loadingText){
-		let newText = Object.values(text).filter(a => a.loading).map(x => x.text)
-		loadingText.innerText = newText.join('\n')
 	}
 }
 
-map.on('loadstart',updateLoadingText)
-heatmap_source.on('tileloadstart',updateLoadingText)
-heatmap_source.on('tileloadend',updateLoadingText)
-osmSource.on('tileloadstart',updateLoadingText)
-osmSource.on('tileloadend', updateLoadingText)
-map.on('loadend',updateLoadingText)
+map.on('loadstart',function(){ cProgress.update({ loading:true, key: 'loading map resources...' }) })
+map.on('loadend',function(){cProgress.update({ loading:false, key: 'loading map resources...' }) })
 map.on('error',function(e){console.log('MAP ERROR',e)})
 
-heatmap_source.on('tileloadstart',loadGridJSON)
-heatmapLayer.on('change:extent',function(e){
-//	console.log('change:extent',e)
-//	console.log('Obsource clear')
+heatmap_source.on(['tileloadstart','tileloadend'],updateProgress)
+osmSource.on(['tileloadstart','tileloadend'],updateProgress)
+
+heatmap_source.on('tileloaderror',loaderror)
+osmSource.on('tileloaderror',loaderror)
+
+function loaderror(e){
+	console.log('LOAD ERROR', e)
+}
+
+pseudoLayer.on('change:extent',function(e){
 	obsSource.clear()
 	grid = {}
 	text = {}
-	heatmap_source.refresh()
+	pseudoSource.refresh()
 })
+pseudoSource.on('tileloadstart',loadGridJSON)
 
 async function loadGridJSON(evt){
 
 	let coords = evt.tile.getTileCoord()
+	let extent = ol.proj.transformExtent(pseudoLayer.getExtent(), 'EPSG:3857', 'EPSG:4326');
 
-	let extent = ol.proj.transformExtent(heatmapLayer.getExtent(), 'EPSG:3857', 'EPSG:4326');
 	let url = '/points/'+ coords.join('/') + '.grid.json'
-	let newURL = url + '?category=' + category 
-		+ '&extent=' + extent
+	let newURL = url + '?category=' + category + '&extent=' + extent
 
-	updateLoadingText({type:'tileloadstart',tile:{ 'url_' : url } } )
+	cProgress.update({ loading:true, key: url  })
 
 	let response
 	try{
 	 	response = await fetch(newURL,{signal})
 	}catch(e){
-		//console.log(e)
-		updateLoadingText({type:'tileloadend', 'tile' : {'url_': url} } )
-		updateLoadingText({type:'loadend'})
+		console.log(e)
+		cProgress.update({ loading:false, key: url  })
 		return 0
 	}
  	if(!response.ok){
- 		updateLoadingText({type:'tileloadend', 'tile' : {'url_': url} } )
+ 		cProgress.update({ loading:false, key: url  })
  		return 0
  	}
 
  	let data = await response.json()
-
 	let features = []
-	for(const [key,value] of Object.entries(data.data)){
 
-		grid[key] = {
-			id: value.id,
-			location: [value.longitude,value.latitude],
-			zxy: coords.join()
+	if(!data.data){
+		cProgress.update({ loading:false, key: url  })
+		return 0
+	}
+
+	for(const [key,value] of Object.entries(data.data)){
+		if(!grid[key]){
+			grid[key] = {
+				id: value.id,
+				location: [value.longitude,value.latitude],
+				zxy: coords.join()
+			}
+			
+			let f = new ol.Feature({
+				id: value.id,
+				geometry: new ol.geom.Point(ol.proj.fromLonLat([value.longitude,value.latitude])),
+				retrieveMetaData: retrieveObsData
+			})
+			f.setId(value.id)
+			features.push(f)
 		}
-		
-		let f = new ol.Feature({
-			id: value.id,
-			geometry: new ol.geom.Point(ol.proj.fromLonLat([value.longitude,value.latitude])),
-			retrieveMetaData: retrieveObsData
-		})
-		f.setId(value.id)
-		features.push(f)
 	}
 	if(features.length){
 		obsSource.addFeatures(features)
 		clusterSource.refresh()
 	}
-	updateLoadingText({type:'tileloadend', 'tile' : {'url_': url} } )
+	cProgress.update({ loading:false, key: url  })
 
 	return true
 }
-
-
-// const observer = new PerformanceObserver((list) => {
-//   for (const entry of list.getEntries()) {
-// //  	console.log(entry)
-//     if (entry.initiatorType === "fetch" || entry.initiatorType === 'xmlhttprequest' || entry.initiatorType === 'other' ) {
-//       console.log('Fetch request detected to', entry.name, entry.duration);
-//     }
-//   }
-// });
-
-// observer.observe({
-//   type: "resource", buffered: true
-// });
-
-// map.on('pointermove', function (evt) {
-//   if (evt.dragging) {
-//     return;
-//   }
-//   const coordinate = map.getEventCoordinate(evt.originalEvent);
-//   const viewResolution = view.getResolution();
-//   jsonLayer.getSource().forDataAtCoordinateAndResolution(
-//     coordinate,
-//     viewResolution,
-//     function (data) {
-//     	if(data){
-// 	    	console.log(data)
-// 	    }
-//     }
-//   );
-// });
-

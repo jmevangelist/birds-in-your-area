@@ -111,14 +111,17 @@ def species(request):
 
 	extent = request.GET.get("extent")
 	category = request.GET.get("category",defaults.category).lower()
-	bbox = extent.split(',')
 
 	payload = defaults.payload.copy()
 
-	payload['nelat'] = bbox[3]
-	payload['nelng'] = bbox[2]
-	payload['swlat'] = bbox[1]
-	payload['swlng'] = bbox[0]
+	if extent:
+		bbox = extent.split(',')
+		payload['nelat'] = bbox[3]
+		payload['nelng'] = bbox[2]
+		payload['swlat'] = bbox[1]
+		payload['swlng'] = bbox[0]
+
+
 	payload['iconic_taxa'] = iconicTaxa.get(category)
 	payload['per_page'] = 500
 

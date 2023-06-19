@@ -15,6 +15,16 @@
 </head>
 <body>
 
+<div class="offcanvas offcanvas-start" data-bs-scroll="true" data-bs-backdrop="false" tabindex="-1" id="offcanvasScrolling" aria-labelledby="offcanvasScrollingLabel">
+  <div class="offcanvas-header">
+    <h5 class="offcanvas-title" id="offcanvasScrollingLabel">Offcanvas with body scrolling</h5>
+    <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Close"></button>
+  </div>
+  <div class="offcanvas-body">
+    <p>Try scrolling the rest of the page to see this option in action.</p>
+  </div>
+</div>
+
 <div class="container-fluid h-100">
 	<div class="row h-100">
 		<div class="col-md-9 order-md-2 mobile-70 p-0">
@@ -37,7 +47,10 @@
 				<div class="position-absolute z-1 top-0 m-2 w-50" id="searchPlaces" style="left: 2em">
 					<div class="input-group input-group-sm" >
 						<input class="form-control" list="placesOptions" id="placesInput" placeholder="Fly to...">
-						<button class="btn btn-primary" onClick="selectPlace()" type="button"><i class="bi bi-compass"></i></button>
+						<button class="btn btn-primary" onClick="selectPlace()" type="button">
+							<i class="bi bi-compass"></i>
+							<span class="spinner-grow spinner-grow-sm display-none" role="status"></span>
+						</button>
 					</div>
 					<datalist id="placesOptions"></datalist>
 				</div>
@@ -72,6 +85,11 @@
 					</div>
 				</div>
 				<div class="position-absolute z-1 bottom-0" style="font-size: xx-small;" id="loading-text"></div>
+				<div class="position-absolute z-1 bottom-0" style="width: 100%">
+					<div class="progress" role="progressbar" aria-label="Animated striped example" aria-valuenow="75" aria-valuemin="0" aria-valuemax="100" style="height: 7px;">
+				  		<div class="progress-bar progress-bar-striped progress-bar-animated" id="map-progress-bar"></div>
+					</div>
+				</div>
 			</div>
 		</div>
 		<div class="col-md-3 order-md-1 mobile-30 overflow-scroll pt-1" data-link="{% url 'birds:species' %}" id="species-panel">

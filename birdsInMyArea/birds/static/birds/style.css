@@ -55,3 +55,11 @@ figure {
 .blockquote {
   font-size: small !important;
 }
+
+.species_card {
+  max-width: 40em
+}
+
+.display-none {
+  display: none;
+}

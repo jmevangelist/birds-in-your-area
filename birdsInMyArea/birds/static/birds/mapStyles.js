@@ -43,14 +43,15 @@ const srcRef = {
 const styleCache = []
 function clusterStyle(feature) {
 	const size = feature.get('features').length
-	const index = Math.ceil(Math.log10(size))
+	const index = Math.ceil(Math.log(size))
 	if(!styleCache[index]){styleCache[index] = {}}
 	if(!styleCache[index][category ?? 'birds']){
-		let scale = (0.04) + ((Math.ceil(Math.log10(size)))*0.01)
+		let src = srcRef[category ?? 'birds']
+		let scale = (0.04) + ((Math.ceil(Math.log(size)))*0.01)
 		if(scale > 0.09){scale = 0.09}
 		let style = new ol.style.Style({
 			  image: new ol.style.Icon({
-			    src: srcRef[category ?? 'birds'],
+			    src: src,
 			    crossOrigin: 'anonymous',
 			    scale: scale,
 			    opacity: 1

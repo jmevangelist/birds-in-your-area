@@ -29,7 +29,7 @@ WORKER_ARGS=(
 	-c 8
 	-E
 #	--autoscale=20,2
-	--loglevel=INFO
+	--loglevel=WARNING
 )
 
 DJANGO_DEVELOPMENT=True
