@@ -59,12 +59,6 @@ class GeoLocateControl extends ol.control.Control {
 			positionFeatureControl.setStyle(blankStyle);
 		}
 	})
-	
-	geolocationControl.on('change:position', function () {
-	  const coordinates = geolocationControl.getPosition();
-	  positionFeatureControl.setStyle(null)
-	  positionFeatureControl.setGeometry(coordinates ? new ol.geom.Point(coordinates) : null);
-	});
 
 	geolocationControl.on('error',function(e){
 		if(e.code = 1){
@@ -83,6 +77,7 @@ class GeoLocateControl extends ol.control.Control {
 	input.addEventListener('change', this.handleGeoLocateControl.bind(this), false)
 	window.addEventListener("deviceorientationabsolute", this.handleRotation.bind(this), false)
 	geolocationControl.on('change:projection', this.projectionSet.bind(this), false)
+	geolocationControl.on('change:position', this.handlePosition.bind(this), false)
 
 	this.geolocation = geolocationControl
 	this.geoLayer = geoLayer
@@ -136,6 +131,13 @@ class GeoLocateControl extends ol.control.Control {
 		this.updateRotation(viewRotationPrev-r)
 		viewRotationPrev = r
 	}.bind(this))
+  }
+
+  handlePosition(){
+	const coordinates = this.geolocation.getPosition();
+	this.positionFeature.setStyle(null)
+	this.positionFeature.setGeometry(coordinates ? new ol.geom.Point(coordinates) : null);
+	if(coordinates){ this.getMap().getView().animate({center: coordinates }) }
   }
 
 
@@ -635,7 +637,6 @@ function search() {
 
 	extent = ol.proj.transformExtent(extent, 'EPSG:3857', 'EPSG:4326');
 	extent = extent.map(x => Math.round((x + Number.EPSILON) * 100000) / 100000)
-	search_extent = extent
 
 	coord = coord.map(x => Math.round((x + Number.EPSILON) * 100000)/ 100000)
 	zoom = Math.round((zoom + Number.EPSILON) * 100)/100
@@ -793,7 +794,6 @@ var color = 0
 var category = 'birds'
 var obsMetaData = {}
 var grid = {}
-var search_extent
 
 // MAP
 const view = new ol.View({
