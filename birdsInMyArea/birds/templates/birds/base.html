@@ -25,90 +25,109 @@
   </div>
 </div>
 
-<div class="container-fluid h-100">
-	<div class="row h-100">
-		<div class="col-md-9 order-md-2 mobile-70 p-0">
-			<div class="position-relative">
-				<div id="map" class="map mobile-70" class="position-absolute z-0"></div>
-				<div style="display: none;">
-			      <div id="obs-info" class="card shadow-sm" style="width: 19em; max-height: 32em">
-			        <img class="card-img-top img-fluid" loading="lazy" style="height: auto; max-height: 25em !important; object-fit: cover"/>
-			        <audio controls class="z-1 position-relative"></audio>
-			  		<p class="card-text mb-0 text-center obs-attribution" style="font-size: xx-small;"><small class="text-body-secondary"></small></p>
-			  		<div class="card-img-overlay p-1">
-			  			<button class="btn btn-primary btn-sm position-absolute obs-next" style="right: 0.5em"><i class="bi bi-chevron-double-right"></i></button>
-			  		</div>
-			        <div class="card-body p-2 pt-0 row overflow-scroll">
-			       		<p class="mb-0 fw-bold obs-name" style="font-size: smaller"></p>
-			       		<div class="mb-0 position-relative obs-description" style="font-size: smaller" href="#" target="_blank"></div>
-			       	</div>
-			      </div>
-			    </div>
-				<div class="position-absolute z-1 top-0 m-2 w-50" id="searchPlaces" style="left: 2em">
-					<div class="input-group input-group-sm" >
-						<input class="form-control" list="placesOptions" id="placesInput" placeholder="Fly to...">
-						<button class="btn btn-primary" onClick="selectPlace()" type="button">
-							<i class="bi bi-compass"></i>
-							<span class="spinner-grow spinner-grow-sm display-none" role="status"></span>
-						</button>
-					</div>
-					<datalist id="placesOptions"></datalist>
-				</div>
-				<div class="toast position-absolute z-2 align-items-center top-50 start-50 translate-middle-x" id="resultsToast" role="alert" aria-live="assertive" aria-atomic="true">
-				  <div class="d-flex">
-				    <div class="toast-body" id="toastMessage">
-				      Hello, world! This is a toast message.
-				    </div>
-				    <button type="button" class="btn-close me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
-				  </div>
-				</div>
-				<div class="position-absolute z-1 top-0 end-0 m-2 map-control">
-					<div class="btn-group" style="visibility: hidden" id="search">
-						<button  type="button" id="categoryPicker" dropdown-toggle data-bs-toggle="dropdown" class="btn btn-primary btn-sm">
-							{{category | title}}?
-						</button>
-						<button  type="button" class="btn btn-primary btn-sm" onClick="search()">
-							<i class="bi bi-binoculars"></i>
-						</button>
-						<ul class="dropdown-menu">
-							{% if category_list %}
-							{% for category in category_list %}
-								<li>
-									<button class="dropdown-item btn-sm" type="button" onClick="pickCategory('{{category}}')">{{category | title}}
-									</button>
-								</li>
-   							{% endfor %}
-   							{% endif %}
-						</ul>
-					</div>
-					<div class="spinner-grow spinner-grow text-primary searching" id="map-spinner" style="display: none" role="status"><span class="visually-hidden">Loading...</span>
-					</div>
-				</div>
-				<div class="position-absolute z-1 bottom-0" style="font-size: xx-small;" id="loading-text"></div>
-				<div class="position-absolute z-1 bottom-0" style="width: 100%">
-					<div class="progress" role="progressbar" aria-label="Animated striped example" aria-valuenow="75" aria-valuemin="0" aria-valuemax="100" style="height: 7px;">
-				  		<div class="progress-bar progress-bar-striped progress-bar-animated" id="map-progress-bar"></div>
-					</div>
-				</div>
+<div style="display: none;">
+  <div id="obs-info" class="card shadow-sm" style="width: 19em; max-height: 32em">
+    <img class="card-img-top img-fluid" loading="lazy" style="height: auto; max-height: 23em !important; object-fit: cover"/>
+    <audio controls class="z-1 position-relative"></audio>
+		<p class="card-text mb-0 text-center obs-attribution" style="font-size: xx-small;"><small class="text-body-secondary"></small></p>
+		<div class="card-img-overlay p-1">
+			<button class="btn btn-primary btn-sm position-absolute obs-next" style="right: 0.5em"><i class="bi bi-chevron-double-right"></i></button>
+		</div>
+    <div class="card-body p-2 pt-0 row overflow-scroll">
+   		<p class="mb-0 fw-bold obs-name" style="font-size: smaller"></p>
+   		<div class="mb-0 position-relative obs-description" style="font-size: smaller" href="#" target="_blank"></div>
+   	</div>
+  </div>
+</div>
+
+<div class="container-fluid p-1">
+
+	<!--MAP-->
+	<div class="position-relative">
+		<div id="map" class="map" class="position-absolute z-0"></div>
+		
+		<div class="position-absolute z-1 top-0 mt-2 ms-2" id="searchPlaces"> <!-- style="left: 2em" -->
+			<div class="input-group input-group-sm" >
+				<input class="form-control" list="placesOptions" id="placesInput" placeholder="Fly to...">
+				<button class="btn btn-primary" onClick="selectPlace()" type="button">
+					<i class="bi bi-compass"></i>
+					<span class="spinner-grow spinner-grow-sm display-none" role="status"></span>
+				</button>
+			</div>
+			<datalist id="placesOptions"></datalist>
+		</div>
+		<div class="position-absolute z-1 top-0 mt-5 ms-5 map-control">
+			<div class="spinner-grow spinner-grow text-primary searching" id="map-spinner" style="display: none" role="status">
+			</div>
+			<div class="btn-group" style="visibility: hidden" id="search">
+				<button  type="button" id="categoryPicker" dropdown-toggle data-bs-toggle="dropdown" class="btn btn-primary btn-sm">
+					{{category | title}}?
+				</button>
+				<button  type="button" class="btn btn-primary btn-sm" onClick="search()">
+					<i class="bi bi-binoculars"></i>
+				</button>
+				<ul class="dropdown-menu">
+					{% if category_list %}
+					{% for category in category_list %}
+						<li>
+							<button class="dropdown-item btn-sm" type="button" onClick="pickCategory('{{category}}')">{{category | title}}
+							</button>
+						</li>
+						{% endfor %}
+						{% endif %}
+				</ul>
 			</div>
 		</div>
-		<div class="col-md-3 order-md-1 mobile-30 overflow-scroll pt-1" data-link="{% url 'birds:species' %}" id="species-panel">
-		</div>
-		<div class="col-md-3 order-md-1 mobile-30 searching" id="species-panel-spinner">
-			<div class="d-flex min-vh-100 justify-content-center align-items-center">
-				<div class="spinner-grow spinner-grow text-primary" role="status">
-				  <span class="visually-hidden">Loading...</span>
-				</div>
-				<div class="spinner-grow spinner-grow text-secondary" role="status">
-				  <span class="visually-hidden">Loading...</span>
-				</div>
-				<div class="spinner-grow spinner-grow text-success" role="status">
-				  <span class="visually-hidden">Loading...</span>
-				</div>
+		<div class="position-absolute z-1 bottom-0 map-control" style="font-size: xx-small;" id="loading-text"></div>
+		<div class="position-absolute z-1 bottom-0 map-control" style="width: 100%">
+			<div class="progress" role="progressbar" aria-label="Animated striped example" aria-valuenow="75" aria-valuemin="0" aria-valuemax="100" style="height: 7px;">
+		  		<div class="progress-bar progress-bar-striped progress-bar-animated" id="map-progress-bar"></div>
 			</div>
+		</div>
+		<div class="toast position-absolute z-2 align-items-center top-50 start-50 translate-middle-x map-control" id="resultsToast" role="alert" aria-live="assertive" aria-atomic="true">
+		  <div class="d-flex">
+		    <div class="toast-body" id="toastMessage">
+		      Hello, world! This is a toast message.
+		    </div>
+		    <button type="button" class="btn-close me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+		  </div>
 		</div>
 	</div>
+
+	<!--SPECIES LIST-->
+	<div class="mt-2" data-link="{% url 'birds:species' %}" id="species-panel"></div>
+	<div class="searching mt-2" id="species-panel-spinner">
+		<div class="spinner-grow spinner-grow text-primary" role="status">
+		  <span class="visually-hidden">Loading...</span>
+		</div>
+		<div class="spinner-grow spinner-grow text-secondary" role="status">
+		  <span class="visually-hidden">Loading...</span>
+		</div>
+		<div class="spinner-grow spinner-grow text-success" role="status">
+		  <span class="visually-hidden">Loading...</span>
+		</div>
+	</div>
+
+	<footer class="d-flex flex-wrap justify-content-between align-items-center border-top">
+	    <div>
+	    	<p class="mb-0" style="font-size: smaller">
+	    		Sources: <a href="https://api.inaturalist.org">iNaturalist</a>+ 
+	    		<a href="https://openlayers.org/">Openlayers</a>+
+	    		<a href="https://getbootstrap.com/">Bootstrap</a>+
+	    		<a href="https://fontawesome.com/">Font Awesome</a>+
+	    		<a href="https://commons.wikimedia.org/wiki/File:FP_Mushroom_icon.svg">Maxxl²</a>
+	    		<a href="https://en.wikipedia.org">Wikipedia</a>
+	    	</p>
+		</div>
+	    <div>
+	      <p class="col mb-0 text-body-secondary text-md-end text-start" style="font-size: smaller;">Made by jmevangelist</p>
+	    </div>
+	</footer>
+
 </div>
+
+
+
 
 </body>
 
@@ -122,17 +141,3 @@
 <script src="{% static 'birds/main.js' %}"></script>
 <script>loadMap('{{lat}}', '{{lng}}', '{{z}}', '{{category}}')</script>
 
-<footer class="d-flex flex-wrap justify-content-between align-items-center border-top">
-    <div>
-    	<p class="mb-0" style="font-size: smaller">
-    		Sources: <a href="https://api.inaturalist.org">iNaturalist</a>+ 
-    		<a href="https://openlayers.org/">Openlayers</a>+
-    		<a href="https://getbootstrap.com/">Bootstrap</a>+
-    		<a href="https://fontawesome.com/">Font Awesome</a>+
-    		<a href="https://commons.wikimedia.org/wiki/File:FP_Mushroom_icon.svg">Maxxl²</a>
-    	</p>
-	</div>
-    <div>
-      <p class="col mb-0 text-body-secondary text-md-end text-start" style="font-size: smaller;">Made by jmevangelist</p>
-    </div>
-</footer>

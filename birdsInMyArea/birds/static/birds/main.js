@@ -482,12 +482,47 @@ function showToast(species_count,total_obs){
 	toastBootstrap.show()
 }
 
-async function searchForBirds(category,extent) {
+function insertWikiSummary(){
+	const spanel = document.getElementById('species-panel')
+	const cards = document.querySelectorAll('.species_card')
+	const wiki_url = "https://en.wikipedia.org/api/rest_v1/page/summary/"
 
-	//get all species
+	for(let i=0;i<cards.length;i++){
+		insertWikiSummaryByCard(cards[i])
+	}
+}
+
+function insertWikiSummaryByCard(card){
+	const wiki_url = "https://en.wikipedia.org/api/rest_v1/page/summary/"
+	let wiki = card.dataset.wiki
+
+	if(wiki){
+		let wikiArr = wiki.split('/')
+		fetch(wiki_url+wikiArr[wikiArr.length-1]).then( a =>{
+			a.json().then(data =>{
+				let wiki_sum = card.querySelector('.wiki_div')
+				wiki_sum.innerHTML = data.extract_html
+				let wiki_link = document.createElement('a')
+				wiki_link.innerText = "[source]"
+				wiki_link.href = wiki 
+				wiki_link.target = '_blank'
+				let sup = document.createElement('sup')
+				sup.append(wiki_link)
+				wiki_sum.lastElementChild.append(sup)
+			})
+			
+		})
+	}
+}
+
+
+async function getSpeciesCards(category,extent,page){
+
 	let url = document.getElementById('species-panel').dataset.link + '?' + new URLSearchParams({
 		'extent': extent,
-		'category': category
+		'category': category,
+		'page': page ?? 1,
+		'per_page': 10
 	})
 
 	const response = await fetch(url);
@@ -497,8 +532,64 @@ async function searchForBirds(category,extent) {
 	}
 
 	var html = await response.text()
-	document.getElementById('species-panel').innerHTML = html;
-//	setPanelListeners()	
+
+	return html
+}
+
+async function setupObserver(category,extent){
+
+	async function intersectionHandler(entries,observer){
+		entries.forEach( async (entry)=>{
+			if(entry.isIntersecting){
+				if(entry.target.classList.contains('species_div') &&
+					entry.target.classList.contains('last-card') ){
+					var lastCard = entry.target 
+					lastCard.classList.toggle('last-card')
+					lastCard.querySelector('.batch-load').classList.toggle('display-none')
+					var page = parseInt(entry.target.dataset.page)+1
+					var element = document.getElementById('species-panel').lastElementChild
+					var speciesBatch = await getSpeciesCards(category,extent,page)
+					lastCard.querySelector('.batch-load').classList.toggle('display-none')
+					element.innerHTML += speciesBatch
+
+					observer.unobserve(lastCard)
+					var newLastCard = document.querySelector('.last-card')
+					if(newLastCard){
+						observer.observe(newLastCard)
+						let selector = '.page-' + entry.target.dataset.page + ' ~ .species_div'
+							+ ' > .species_card'
+						let cards = document.querySelectorAll(selector)
+						for(let i=0; i<cards.length; i++){
+							observer.observe(cards[i])
+						}
+					}
+
+
+				}else if(entry.target.classList.contains('species_card')){
+					insertWikiSummaryByCard(entry.target)
+					observer.unobserve(entry.target)
+				}
+			}
+		})
+	}
+
+	let observer = new IntersectionObserver(intersectionHandler, {  root: null, threshold: 0.5 });
+	observer.observe(document.querySelector('.last-card'))
+	let cards = document.querySelectorAll('.species_card')
+	for(let i=0; i<cards.length; i++){
+		observer.observe(cards[i])
+	}
+
+}
+
+async function searchForBirds(category,extent) {
+
+	//get all species
+	let page = 1
+	let speciesBatch = await getSpeciesCards(category,extent,page)
+	document.getElementById('species-panel').innerHTML = speciesBatch;
+
+	setupObserver(category,extent)
 
 	document.getElementById('species-panel-spinner').style.display = 'none'
 	document.getElementById('species-panel').style.display = 'inline-block'
@@ -513,14 +604,6 @@ async function searchForBirds(category,extent) {
 	document.getElementById('search').style.visibility = 'visible'
 
 	return true 
-}
-
-async function getObsPointsByExtent(category,extent){
-	osmSource.getTileGrid().forEachTileCoord(extent,
-		map.getView().getZoom(),
-		function(zxy){
-
-		})
 }
 
 function pickCategory(cat){
@@ -554,8 +637,7 @@ function search() {
 	let zoom = view.getZoom()
 
 	var extent = map.getView().calculateExtent(map.getSize());
-	search_extent = extent
-
+	
 	let source_url = heatmap_url + '?category=' + category 
 	heatmap_source.setUrl(source_url)
 	heatmapLayer.setExtent(extent)
@@ -563,6 +645,7 @@ function search() {
 
 	extent = ol.proj.transformExtent(extent, 'EPSG:3857', 'EPSG:4326');
 	extent = extent.map(x => Math.round((x + Number.EPSILON) * 100000) / 100000)
+	search_extent = extent
 
 	coord = coord.map(x => Math.round((x + Number.EPSILON) * 100000)/ 100000)
 	zoom = Math.round((zoom + Number.EPSILON) * 100)/100
@@ -683,6 +766,7 @@ async function retrieveObsData(id){
 		let prop = {
 			id: data[i].id,
 			name: data[i].name,
+			species: data[i].species,
 			color: color,
 			datetimeObserved: data[i].time_observed_at,
 			uri: data[i].uri,
@@ -692,7 +776,7 @@ async function retrieveObsData(id){
 			attribution: data[i].attribution,
 			taxonId: data[i].taxon_id,
 			sound: data[i].sound,
-			description: '<figure><blockquote class="blockquote text-start"><p>'+data[i].description+ '</p>'+
+			description: '<em>'+data[i].species+'</em><figure><blockquote class="blockquote text-start"><p>'+data[i].description+ '</p>'+
 				'</blockquote><figcaption class="blockquote-footer text-end">'+
 				data[i].observer + ', <cite>'+ (new Date(data[i].time_observed_at)).toDateString() +
 				'</cite></figcaption></figure>'
@@ -731,12 +815,11 @@ const view = new ol.View({
 
 const osmSource = new ol.source.OSM()
 const baseLayer = new ol.layer.Tile({ source: osmSource }) 
-// const tileGrid = ol.tilegrid.createXYZ()
 const pseudoSource = new ol.source.TileDebug()
 const pseudoLayer =  new ol.layer.Tile({ source: pseudoSource, opacity: 0 })
 
 const map = new ol.Map({ 
-	controls: ol.control.defaults.defaults({attribution: false}),
+	controls: ol.control.defaults.defaults({attribution: false}).extend([new ol.control.FullScreen()]),
 	layers: [baseLayer],
 	target: 'map',
 	view: view

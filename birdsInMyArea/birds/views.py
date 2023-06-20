@@ -91,6 +91,7 @@ def get_obs(request):
 			'attribution': o['observation_photos'][0]['photo']['attribution'] if o['observation_photos'] else ''
 				or o['sounds'][0]['attribution'] if o['sounds'] else '',
 			'name': o['taxon'].get('preferred_common_name',o['taxon'].get('name',category)), 
+			'species': o['taxon'].get('name',category),
 			'description': o['description'] or '',
 			'sound': o['sounds'][0]['file_url'] if o['sounds'] else '' }, list(value))
 		obs_by_species[key] = list(list_of_obs)
@@ -111,6 +112,8 @@ def species(request):
 
 	extent = request.GET.get("extent")
 	category = request.GET.get("category",defaults.category).lower()
+	page = request.GET.get("page",1)
+	per_page = request.GET.get("per_page",100)
 
 	payload = defaults.payload.copy()
 
@@ -121,9 +124,9 @@ def species(request):
 		payload['swlat'] = bbox[1]
 		payload['swlng'] = bbox[0]
 
-
 	payload['iconic_taxa'] = iconicTaxa.get(category)
-	payload['per_page'] = 500
+	payload['per_page'] = per_page
+	payload['page'] = page 
 
 
 	data = observations(payload,['species_counts'])
@@ -137,12 +140,16 @@ def species(request):
 
 		total_obs = 0
 		for key,value in enumerate(species):
-			species[key]['taxon']['default_photo']['attribution'] = re.sub(r', uploaded by.*','',species[key]['taxon']['default_photo']['attribution'])
-			total_obs += value['count']
+			if species[key]['taxon']['default_photo']:
+				species[key]['taxon']['default_photo']['attribution'] = re.sub(r', uploaded by.*','',species[key]['taxon']['default_photo']['attribution'])
+				total_obs += value['count']
+			if not species[key]['taxon']['wikipedia_url']:
+				species[key]['taxon']['wikipedia_url'] = ''
 
 		context['species_count'] = data['total_results']
 		context['total_obs'] = total_obs
 		context['bird_list'] = species
+		context['page'] = page 
 
 	return render(request,"birds/species.html",context)
 

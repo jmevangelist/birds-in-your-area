@@ -1,52 +1,51 @@
 {% load static %}
+{% load humanize %}
 
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
-<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-9ndCyUaIbzAi2FUVXJi0CjmCapSmO7SnpJef0486qhLnuZ2cdeRhO02iuK6FUUVM" crossorigin="anonymous">
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js" integrity="sha384-geWF76RCwLtnZ8qwWowPQNguL3RmwHVBC9FhGdlKrxdiJJigb/j/68SIy3Te4Bkz" crossorigin="anonymous"></script>
-<link rel="stylesheet" href="{% static 'birds/style.css' %}"/>
-
-<a id="panelMetaData" data-species-count="{{species_count}}" data-total-obs="{{total_obs}}"></a>
+{% if page == '1' %}
+<a id="panelMetaData" class="display-none" data-species-count="{{species_count}}" data-total-obs="{{total_obs}}"></a>
+<h3>{{ category|capfirst }}</h3>
+<div class="row justify-content-center">
+{% endif %}
 
 {% if bird_list %}
-<!-- 	<div class="form-check form-check-reverse">
-	  <input class="form-check-input" type="checkbox" checked id="showAllCheckBox">
-	  <label class="form-check-label" for="showAllCheckBox">
-	    Show All
-	  </label>
-	</div>	 -->
-
 	{% for bird in bird_list %}
-	
-	<div class="card mb-2 species_card" id="{{bird.taxon.id}}">
-		<div class="row g-0">
-			<div class="col-5 col-md-12">
-				<img src="{{bird.taxon.default_photo.medium_url}}" loading="lazy" width="{{bird.taxon.default_photo.original_dimensions.width}}" height="{{bird.taxon.default_photo.original_dimensions.height}}" class="card-img-top img-fluid" alt="...">
-				<div class="card-img-overlay" data-type="species_card" data-taxon-id="{{bird.taxon.id}}" data-id="{{forloop.counter}}"data-common-name="{{bird.taxon.preferred_common_name}}" style="padding: 0" >
-					<div class="position-absolute" style="right: 0.5em">
-					  <!-- <input class="form-check-input card-check" type="checkbox" data-taxon-id="{{bird.taxon.id}}" checked aria-label="..."> -->
-					</div>
-				</div>
-				<figcaption class="figure-caption text-center" style="font-size: xx-small;">{{bird.taxon.default_photo.attribution}}</figcaption>
+	<div class="species_div {% if forloop.last %}last-card page-{{page}}{% endif %}" {%if forloop.last %} data-page="{{page}}" {% endif %}> <!-- class="{% cycle 'col-auto' 'col-auto' %} -->
+		<div class="card species_card" id="{{bird.taxon.id}}" data-wiki="{{bird.taxon.wikipedia_url}}">
+
+			<div class="card-body p-1">
+				<p class="mb-0 fw-bold obs-name" style="font-size: smaller">{{bird.taxon.preferred_common_name}}</p>
+				<p class="mb-0" style="font-size: smaller; line-height: 1em"><small><em>{{bird.taxon.name}}</em></small></p>
 			</div>
-			<div class="col-7 col-md-12">
-			  <div class="card-body p-1">
-			    <h6 class="card-title mb-0">{{bird.taxon.preferred_common_name}}</h6>
-			    <p class="mb-0" ><small><em>{{bird.taxon.name}}</em></small></p>
-			    <p class="mb-0"><small><span class="badge rounded-pill position-relative text-bg-secondary">{{bird.count}}</span> sighting{% if bird.count > 1 %}s{% endif %}</small></p>
-			    {% if bird.taxon.wikipedia_url %}
-			    	<a href="{{bird.taxon.wikipedia_url}}" target="_blank" class="card-link position-relative"><small>Read More</small></a>
-			    {% endif %}
-			  </div>
+
+			<img src="{{bird.taxon.default_photo.medium_url}}" loading="lazy" width="{{bird.taxon.default_photo.original_dimensions.width}}" height="{{bird.taxon.default_photo.original_dimensions.height}}" class="card-img species_img " alt="...">
+					
+			<div class="card-img-overlay p-0" data-type="species_card" data-taxon-id="{{bird.taxon.id}}" data-id="{{forloop.counter}}" data-common-name="{{bird.taxon.preferred_common_name}}" data-wiki="{{bird.taxon.wikipedia_url}}">
 			</div>
+
+			<figcaption class="figure-caption text-center" style="font-size: xx-small;">{{bird.taxon.default_photo.attribution}}</figcaption>
+			<p class="ms-1 mb-0 fw-bold" style="font-size: smaller"><small>{{ bird.count|intcomma }} sighting{{ bird.count|pluralize }}</small></p>
+			<div class="wiki_div p-1 position-relative" style="font-size: smaller"></div>
+			{%if forloop.last %}
+			<div class="ms-1 batch-load display-none">
+				<div class="spinner-grow spinner-grow-sm" role="status" aria-hidden="true"></div>
+				<div class="spinner-grow spinner-grow-sm" role="status" aria-hidden="true"></div>
+				<div class="spinner-grow spinner-grow-sm" role="status" aria-hidden="true"></div>
+			</div>
+			{% endif %}
+
 		</div>
 	</div>
 
 	{% endfor %}
 
 {% else %}
+	{% if page == '1' %}
     <h5>No {{category}} :(</h5>
+  {% endif %}
 {% endif %}
 
-
+{% if page == '1' %}
+</div>
+{% endif %}
 
 
