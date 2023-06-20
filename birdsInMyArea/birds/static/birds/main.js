@@ -482,16 +482,6 @@ function showToast(species_count,total_obs){
 	toastBootstrap.show()
 }
 
-function insertWikiSummary(){
-	const spanel = document.getElementById('species-panel')
-	const cards = document.querySelectorAll('.species_card')
-	const wiki_url = "https://en.wikipedia.org/api/rest_v1/page/summary/"
-
-	for(let i=0;i<cards.length;i++){
-		insertWikiSummaryByCard(cards[i])
-	}
-}
-
 function insertWikiSummaryByCard(card){
 	const wiki_url = "https://en.wikipedia.org/api/rest_v1/page/summary/"
 	let wiki = card.dataset.wiki
