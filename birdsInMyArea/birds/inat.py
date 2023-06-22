@@ -66,7 +66,7 @@ def tasker(params,path,method,return_type):
 		logging.info(timeStamp() + b['task_id'] + ' Status: ' + b['status'])
 
 	try:
-		calliNatAPI.apply_async(args=(params,path,method,return_type)).get(timeout=25,callback=getCall,on_message=message)	
+		calliNatAPI.apply_async(args=(params,path,method,return_type)).get(callback=getCall,on_message=message)	
 
 	except CeleryTimeoutError:
 		logging.warning(timeStamp() + 'task ' + task['id'] + ' timeout'  )
@@ -91,3 +91,11 @@ def UTFGrid(params,path):
 def observations(params,path=[],request='get'):
 	path = ['','observations'] + path
 	return tasker(params,path,request,'json')
+
+def taxa(params,path=[]):
+	path = ['','taxa'] + path
+	return tasker({},path,'get','json')
+
+def places(params,path=[]):
+	path = ['','places'] + path
+	return tasker(params,path,'get','json')

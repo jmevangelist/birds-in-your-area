@@ -66,6 +66,6 @@ certtool -s --load-privkey key.pem --no-text --outfile=cert.pem
 - [ ] Species album
 - [ ] Obs album
 - [ ] Species filter
-- [ ] Map Layers
+- [x] Map Layers
 - [ ] Celery as a service
-- [ ] Species info page
+- [x] Species info page

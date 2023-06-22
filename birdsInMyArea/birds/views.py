@@ -6,7 +6,7 @@ from .categories import iconicTaxa
 from . import defaults
 from django.views.decorators.cache import cache_page
 import re
-from .inat import observations, observation_tiles, UTFGrid
+from .inat import observations, observation_tiles, UTFGrid, taxa, places
 
 
 def index(request):
@@ -106,6 +106,23 @@ def get_obs(request):
 
 	return JsonResponse(context)
 
+@cache_page(60*15)
+def taxa_search(request,id=''):
+	data = taxa(request.GET,[id])
+
+	# simplified_taxa = []
+	# for key,value in enumerate(data['results']):
+	# 	if value['conservation_statuses']:
+	# 		info = {}
+	# 		info['id'] = value['id']
+	# 		info['status'] = value['conservation_statuses'][0]['status']
+	# 		info['description'] = value['conservation_statuses'][0]['description']
+	# 		info['url'] = value['conservation_statuses'][0]['url']
+	# 		info['all'] = value['conservation_statuses']
+
+	# 		simplified_taxa.append(info)
+
+	return JsonResponse(data)
 
 @cache_page(60 * 15)
 def species(request):
@@ -138,6 +155,22 @@ def species(request):
 	else:
 		species = data['results']
 
+		ids = ",".join(map(lambda o: str(o['taxon']['id']), list(species)))
+		more_taxon_info = taxa({},[ids])
+		place_info = places({'nelat': payload['nelat'],
+			'nelng': payload['nelng'],
+			'swlat': payload['swlat'],
+			'swlng': payload['swlng'],},
+			['nearby'])
+		if place_info['results']:
+			places_list = list(place_info['results'].get('standard')) + list(place_info['results'].get('community'))
+			places_id = list(map(lambda p: p['id'] ,places_list))
+
+		conservation = dict(map(lambda o: (o['id'], 
+			list(filter(lambda s: s['place']['id'] in places_id if s['place'] else True ,list(o['conservation_statuses']))) 
+			if o.get('conservation_statuses') else [] ),list(more_taxon_info['results'])))
+
+
 		total_obs = 0
 		for key,value in enumerate(species):
 			if species[key]['taxon']['default_photo']:
@@ -145,6 +178,8 @@ def species(request):
 				total_obs += value['count']
 			if not species[key]['taxon']['wikipedia_url']:
 				species[key]['taxon']['wikipedia_url'] = ''
+			if conservation[species[key]['taxon']['id']]:
+				species[key]['taxon']['conservation'] = conservation[species[key]['taxon']['id']]
 
 		context['species_count'] = data['total_results']
 		context['total_obs'] = total_obs

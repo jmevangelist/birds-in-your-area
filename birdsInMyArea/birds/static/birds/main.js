@@ -255,19 +255,21 @@ class featureCardOverlay extends ol.Overlay {
 		}
 	}
 
+	postUpdate(feature){
+		if(feature){
+			if(this.currentFeatureId == feature.get('id')){
+				this.update(feature)
+			}
+		}
+	}
+
 	update(feature){
 		this.currentFeatureId = feature.get('id')
 
 		if(!feature.get('name')){
 			let retrieveMetaData = feature.get('retrieveMetaData')
 			if(retrieveMetaData){
-				retrieveMetaData(feature.get('id')).then(f =>{
-					if(f){
-						if(this.currentFeatureId == f.get('id')){
-							this.update(f)
-						}
-					}
-				})
+				retrieveMetaData(feature.get('id'))
 			}
 		}
 
@@ -448,24 +450,6 @@ function setPanelListeners(){
 	  },
 	  true
 	);	
-}
-
-async function getObs(url,signal){
-	let obs_data = await fetch(url, {signal});
-	if (!obs_data.ok){
-		throw new Error('Failed to load: ' + url + "\nStatus: " + obs_data.status) 
-	}
-
-	let obs = await obs_data.json()
-
-	let features = createFeatures(obs.all_obs,colors[color],key)
-	obsSource.addFeatures(features)
-	for (var key in obs.obs_by_species){
-		taxonId[key] = true
-		clusterSource.refresh()
-	}
-	return true
-
 }
 
 function showToast(species_count,total_obs){
@@ -721,71 +705,77 @@ function obsSourceSetProperties(data){
 async function retrieveObsData(id){
 
 	if(obsMetaData[id]){
-		return obsSourceSetProperties(obsMetaData[id])
-	}else{
+		console.log('cache')
+		infoOverlay.postUpdate(obsSourceSetProperties(obsMetaData[id]))
+	}else if(localStorage.getItem(id)){
+		console.log('local storage')
 		let cache = localStorage.getItem(id)
-		if(cache){
-			obsMetaData[id] = JSON.parse(cache)
-			return obsSourceSetProperties(obsMetaData[id])
-		}
-	}
+		obsMetaData[id] = JSON.parse(cache)
+		infoOverlay.postUpdate(obsSourceSetProperties(obsMetaData[id]))
+	}else{
+		console.log('retrieve')
 
-	let IDsWithoutMetaData = [id]
-	grid[id]['status'] = 'retrieving'
-	let zxy = grid[id].zxy
+		let IDsWithoutMetaData = [id]
+		grid[id]['status'] = 'retrieving'
+		let zxy = grid[id].zxy
+		
+		let sortedGrid = Object.values(grid).filter( a => a.zxy == zxy )
+			.sort((a,b)=> a.location[0]-b.location[0])
+			.concat(Object.values(grid).filter( a => a.zxy != zxy ))
+			.filter( a => !a.status && !obsMetaData[a.id] && !localStorage.getItem(a.id) )
+			.slice(0,30)
+
+		for(let i=0; i<sortedGrid.length; i++){
+			grid[sortedGrid[i].id]['status'] = 'retrieving'
+			IDsWithoutMetaData.push(sortedGrid[i].id)
+		}
+
+		let url = obs_url + '?id=' + IDsWithoutMetaData
+		let obs_data = await fetch(url);
+
+		fetch(url).then(obs_data=>{
+			if (!obs_data.ok){
+				throw new Error('Failed to load: ' + url + "\nStatus: " + obs_data.status) 
+			}
+			obs_data.json().then(obs=>{
+				data = obs.all_obs	
+
+				for(let i=0; i<data.length; i++){
+					let prop = {
+						id: data[i].id,
+						name: data[i].name,
+						species: data[i].species,
+						color: color,
+						datetimeObserved: data[i].time_observed_at,
+						uri: data[i].uri,
+						observer: data[i].observer,
+						photos: data[i].photos.replace('square','medium'),
+						dimensions: data[i].dimensions,
+						attribution: data[i].attribution,
+						taxonId: data[i].taxon_id,
+						sound: data[i].sound,
+						description: '<em>'+data[i].species+'</em><figure><blockquote class="blockquote text-start"><p>'+data[i].description+ '</p>'+
+							'</blockquote><figcaption class="blockquote-footer text-end">'+
+							data[i].observer + ', <cite>'+ (new Date(data[i].time_observed_at)).toDateString() +
+							'</cite></figcaption></figure>'
+					}
+					obsMetaData[data[i].id] = prop
+					try{
+						localStorage.setItem(data[i].id,JSON.stringify(prop))
+					}
+					catch(e){
+						console.log(e)
+						localStorage.clear()
+						localStorage.setItem(data[i].id,JSON.stringify(prop))
+					}
+				}
+
+				let f = obsSourceSetProperties(obsMetaData[id])
+				infoOverlay.postUpdate(f)
+			})
+		})
+	}
 	
-	let sortedGrid = Object.values(grid).filter( a => a.zxy == zxy )
-		.concat(Object.values(grid).filter( a => a.zxy != zxy ))
-		.filter( a => !a.status && !obsMetaData[a.id] && !localStorage.getItem(a.id) )
-		.slice(0,199)
-
-	for(let i=0; i<sortedGrid.length; i++){
-		grid[sortedGrid[i].id]['status'] = 'retrieving'
-		IDsWithoutMetaData.push(sortedGrid[i].id)
-	}
-
-	let url = obs_url + '?id=' + IDsWithoutMetaData
-	let obs_data = await fetch(url);
-	if (!obs_data.ok){
-		throw new Error('Failed to load: ' + url + "\nStatus: " + obs_data.status) 
-	}
-
-	let obs = await obs_data.json()
-	data = obs.all_obs	
-
-	for(let i=0; i<data.length; i++){
-		let prop = {
-			id: data[i].id,
-			name: data[i].name,
-			species: data[i].species,
-			color: color,
-			datetimeObserved: data[i].time_observed_at,
-			uri: data[i].uri,
-			observer: data[i].observer,
-			photos: data[i].photos.replace('square','medium'),
-			dimensions: data[i].dimensions,
-			attribution: data[i].attribution,
-			taxonId: data[i].taxon_id,
-			sound: data[i].sound,
-			description: '<em>'+data[i].species+'</em><figure><blockquote class="blockquote text-start"><p>'+data[i].description+ '</p>'+
-				'</blockquote><figcaption class="blockquote-footer text-end">'+
-				data[i].observer + ', <cite>'+ (new Date(data[i].time_observed_at)).toDateString() +
-				'</cite></figcaption></figure>'
-		}
-		obsMetaData[data[i].id] = prop
-		try{
-			localStorage.setItem(data[i].id,JSON.stringify(prop))
-		}
-		catch(e){
-			console.log(e)
-			localStorage.clear()
-			localStorage.setItem(data[i].id,JSON.stringify(prop))
-		}
-	}
-
-	let f = obsSourceSetProperties(obsMetaData[id])
-
-	return f 
 }
 
 var controller 	//controller for fetch abort
@@ -806,7 +796,7 @@ const view = new ol.View({
 const osmSource = new ol.source.OSM()
 const baseLayer = new ol.layer.Tile({ source: osmSource }) 
 const pseudoSource = new ol.source.TileDebug()
-const pseudoLayer =  new ol.layer.Tile({ source: pseudoSource, opacity: 0 })
+const pseudoLayer =  new ol.layer.Tile({ source: pseudoSource, opacity: 0, minZoom: 10 })
 
 const map = new ol.Map({ 
 	controls: ol.control.defaults.defaults({attribution: false}).extend([new ol.control.FullScreen()]),
@@ -817,7 +807,7 @@ const map = new ol.Map({
 
 //Map Layers
 const heatmap_source = new ol.source.XYZ();
-const heatmapLayer = new ol.layer.Tile({source: heatmap_source, opacity:0.8 });
+const heatmapLayer = new ol.layer.Tile({source: heatmap_source, opacity:0.8, maxZoom: 10 });
 const heatmap_url = "/heatmap/{z}/{x}/{y}.png"
 
 // const points_source = new ol.source.XYZ();
@@ -905,7 +895,23 @@ function showCards(evt){
   	}
 }
 
-map.on('pointermove', showCards)
+hoveredFeature = null
+map.on('pointermove', function(evt){
+	const features = map.forEachFeatureAtPixel(evt.pixel, (feature) => {
+		if(feature.get('features')){
+			return feature;
+		}else{
+			return null
+		}
+	}); 
+	if(features){
+		features.setStyle(highlightIconStyles[category.toLowerCase()]);
+		hoveredFeature = features
+	}else if(hoveredFeature){ //no feature on pointer
+  		hoveredFeature.setStyle()
+  		hoveredFeature = null
+  	}
+})
 map.on('click', showCards)
 
 class MapProgressBar{
@@ -958,6 +964,10 @@ class MapProgressBar{
 		return Object.values(this.loadingDict).filter(a => a.loading).map(x => x.key)
 	}
 
+	refresh(){
+		this.loadingDict = {}
+	}
+
 }
 
 const cProgress = new MapProgressBar({progressBar : document.getElementById('map-progress-bar')})
@@ -993,7 +1003,7 @@ function loaderror(e){
 pseudoLayer.on('change:extent',function(e){
 	obsSource.clear()
 	grid = {}
-	text = {}
+	cProgress.refresh()
 	pseudoSource.refresh()
 })
 pseudoSource.on('tileloadstart',loadGridJSON)
@@ -1009,48 +1019,47 @@ async function loadGridJSON(evt){
 	cProgress.update({ loading:true, key: url  })
 
 	let response
-	try{
-	 	response = await fetch(newURL,{signal})
-	}catch(e){
-		console.log(e)
-		cProgress.update({ loading:false, key: url  })
-		return 0
-	}
- 	if(!response.ok){
+
+ 	fetch(newURL,{signal}).then(response=>{
+ 		if(!response.ok){
+	 		cProgress.update({ loading:false, key: url  })
+	 	}else{
+	 		response.json().then(data=>{
+	 			let features = []
+
+				if(!data.data){
+					cProgress.update({ loading:false, key: url  })
+					return 0
+				}
+
+				for(const [key,value] of Object.entries(data.data)){
+					if(!grid[key]){
+						grid[key] = {
+							id: value.id,
+							location: [value.longitude,value.latitude],
+							zxy: coords.join()
+						}
+						
+						let f = new ol.Feature({
+							id: value.id,
+							geometry: new ol.geom.Point(ol.proj.fromLonLat([value.longitude,value.latitude])),
+							retrieveMetaData: retrieveObsData
+						})
+						f.setId(value.id)
+						features.push(f)
+					}
+				}
+				if(features.length){
+					obsSource.addFeatures(features)
+					clusterSource.refresh()
+				}
+				cProgress.update({ loading:false, key: url  })
+	 		})
+	 	}
+ 	}).catch(e=>{
  		cProgress.update({ loading:false, key: url  })
  		return 0
- 	}
-
- 	let data = await response.json()
-	let features = []
-
-	if(!data.data){
-		cProgress.update({ loading:false, key: url  })
-		return 0
-	}
-
-	for(const [key,value] of Object.entries(data.data)){
-		if(!grid[key]){
-			grid[key] = {
-				id: value.id,
-				location: [value.longitude,value.latitude],
-				zxy: coords.join()
-			}
-			
-			let f = new ol.Feature({
-				id: value.id,
-				geometry: new ol.geom.Point(ol.proj.fromLonLat([value.longitude,value.latitude])),
-				retrieveMetaData: retrieveObsData
-			})
-			f.setId(value.id)
-			features.push(f)
-		}
-	}
-	if(features.length){
-		obsSource.addFeatures(features)
-		clusterSource.refresh()
-	}
-	cProgress.update({ loading:false, key: url  })
+ 	})
 
 	return true
 }

@@ -1,5 +1,6 @@
 {% load static %}
 {% load humanize %}
+{% load species_extras %}
 
 {% if page == '1' %}
 <a id="panelMetaData" class="display-none" data-species-count="{{species_count}}" data-total-obs="{{total_obs}}"></a>
@@ -19,12 +20,26 @@
 
 			<img src="{{bird.taxon.default_photo.medium_url}}" loading="lazy" width="{{bird.taxon.default_photo.original_dimensions.width}}" height="{{bird.taxon.default_photo.original_dimensions.height}}" class="card-img species_img " alt="...">
 					
-			<div class="card-img-overlay p-0" data-type="species_card" data-taxon-id="{{bird.taxon.id}}" data-id="{{forloop.counter}}" data-common-name="{{bird.taxon.preferred_common_name}}" data-wiki="{{bird.taxon.wikipedia_url}}">
+			<div class="card-img-overlay p-0" data-type="species_card" data-taxon-id="{{bird.taxon.id}}" data-common-name="{{bird.taxon.preferred_common_name}}" data-wiki="{{bird.taxon.wikipedia_url}}">
 			</div>
 
 			<figcaption class="figure-caption text-center" style="font-size: xx-small;">{{bird.taxon.default_photo.attribution}}</figcaption>
+
 			<p class="ms-1 mb-0 fw-bold" style="font-size: smaller"><small>{{ bird.count|intcomma }} sighting{{ bird.count|pluralize }}</small></p>
-			<div class="wiki_div p-1 position-relative" style="font-size: smaller"></div>
+			{% if bird.taxon.conservation %}
+			<div class="ms-1 mt-0 mb-1 position-relative" data-c="{{bird.taxon.conservation}}" style="font-size: smaller;">
+				<p class="fw-bold mb-0">Conservation Status:</p>
+				{% for conservation in bird.taxon.conservation %}
+					<p class="mb-0 ms-1"><em><strong class="{% red_list_class conservation.status %}">{{conservation.status | red_list_text}}</strong><sup><a href="{{conservation.url}}" target="_blank">[{{conservation.authority|truncate}}]</a></sup></em>
+						{% if conservation.place %} on {{conservation.place.display_name}} {% endif %}
+						{% if conservation.description %}
+						</br><em> {{conservation.description}} </em>
+						{% endif %}
+					</p>
+				{% endfor %}				
+			</div>
+			{% endif %}
+			<div class="wiki_div m-1 position-relative" style="font-size: smaller"></div>
 			{%if forloop.last %}
 			<div class="ms-1 batch-load display-none">
 				<div class="spinner-grow spinner-grow-sm" role="status" aria-hidden="true"></div>

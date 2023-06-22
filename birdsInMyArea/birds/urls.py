@@ -15,7 +15,8 @@ urlpatterns = [
     path("heatmap/<str:z>/<str:x>/<str:y>.png", views.obs_tiles, name="tiles_heatmap"),
     path("points/<str:z>/<str:x>/<str:y>.png", views.obs_tiles, name="tiles_points"),
     path("heatmap/<int:z>/<int:x>/<int:y>.grid.json", views.utf_grid, name="json_heatmap"),
-    path("points/<int:z>/<int:x>/<int:y>.grid.json", views.utf_grid, name="json_points")
+    path("points/<int:z>/<int:x>/<int:y>.grid.json", views.utf_grid, name="json_points"),
+    path("taxa/<str:id>", views.taxa_search, name="taxa_search")
 ]
 
 
