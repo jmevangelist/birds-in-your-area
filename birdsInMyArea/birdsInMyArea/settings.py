@@ -168,8 +168,9 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 CACHES = {
     "default": {
-        "BACKEND": "django.core.cache.backends.filebased.FileBasedCache",
-        "LOCATION": "/var/tmp/birdsInMyArea_cache",
+        "BACKEND": "django.core.cache.backends.redis.RedisCache",
+        "LOCATION": os.getenv('REDIS_URL'),
+        "KEY_PREFIX": "django_cache"
     }
 }
 
@@ -194,3 +195,11 @@ if os.getenv('DJANGO_DEVELOPMENT') == 'True': #os variables are strings
 
     REDIS_HOST = "localhost"
     REDIS_PORT = 6379
+
+    CACHES = {
+        "default": {
+            "BACKEND": "django.core.cache.backends.redis.RedisCache",
+            "LOCATION": "redis://localhost:6379",
+            "KEY_PREFIX": "django_cache"
+        }
+    }
