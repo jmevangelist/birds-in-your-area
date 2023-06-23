@@ -139,8 +139,6 @@ class GeoLocateControl extends ol.control.Control {
 	this.positionFeature.setGeometry(coordinates ? new ol.geom.Point(coordinates) : null);
 	if(coordinates){ this.getMap().getView().animate({center: coordinates }) }
   }
-
-
 }
 
 class searchPlacesControl extends ol.control.Control {
@@ -269,7 +267,7 @@ class featureCardOverlay extends ol.Overlay {
 		if(!feature.get('name')){
 			let retrieveMetaData = feature.get('retrieveMetaData')
 			if(retrieveMetaData){
-				retrieveMetaData(feature.get('id'))
+				retrieveMetaData(feature.get('id'),this.postUpdate.bind(this))
 			}
 		}
 
@@ -355,39 +353,172 @@ class featureCardOverlay extends ol.Overlay {
 	}
 }
 
-function createFeatures(coords,color){
+class speciesContent{
 
-	let features = []
+	params = { 'per_page': 10,
+				'category': 'birds' }
+		// 	extent
+		//	category 
+		//	page
+		//	per_page
 
-	for(let i=0;i<coords.length;i++){
-		if(coords[i].attribution.indexOf('all rights reserved') >-1){
-			coords[i].photos = ''
-			coords[i].attribution = ''
-		}
-		
-		let f = new ol.Feature({
-			id: coords[i].id,
-			geometry: new ol.geom.Point(ol.proj.fromLonLat(coords[i].location)),
-			name: coords[i].name,
-			color: color,
-			datetimeObserved: coords[i].time_observed_at,
-			uri: coords[i].uri,
-			observer: coords[i].observer,
-			photos: coords[i].photos.replace('square','medium'),
-			dimensions: coords[i].dimensions,
-			attribution: coords[i].attribution,
-			taxonId: coords[i].taxon_id,
-			sound: coords[i].sound,
-			description: '<figure><blockquote class="blockquote text-start"><p>'+coords[i].description+ '</p>'+
-				'</blockquote><figcaption class="blockquote-footer text-end">'+
-    			coords[i].observer + ', <cite>'+ (new Date(coords[i].time_observed_at)).toDateString() +
-    			'</cite></figcaption></figure>'
-		});
-
-		features.push(f)
+	constructor(options){
+		this.containerEl = options.container
+		this.url = options.url 
 	}
 
-	return features
+	async set(parameters){
+		this.reset()
+		Object.keys(parameters).forEach(key=>{
+			this.params[key] = parameters[key]
+		})
+		let init_html = await this.getContent()
+		this.containerEl.innerHTML = init_html
+		this.setupObserver()
+	}
+
+	reset(){
+		this.params.page = 1
+		this.containerEl.innerHTML = ''
+	}
+
+	async getContent(){
+		let url = this.url + '?' + new URLSearchParams(this.params)
+		const response = await fetch(url)
+		if(!response.ok){
+			throw new Error('Failed to load: ' + url + "\nStatus: " + response.status) 
+		}
+
+		var html = await response.text()
+		return html
+	}
+
+	async intersectionHandler(entries,observer){
+		entries.forEach( async (entry)=>{
+			if(entry.isIntersecting){
+				if(entry.target.classList.contains('species_div') &&
+					entry.target.classList.contains('last-card') ){
+					var lastCard = entry.target 
+					lastCard.classList.toggle('last-card')
+					lastCard.querySelector('.batch-load').classList.toggle('display-none')
+					this.params.page = parseInt(entry.target.dataset.page)+1
+					var element = document.getElementById('species-panel').lastElementChild
+					
+					var speciesBatch = await this.getContent()
+					lastCard.querySelector('.batch-load').classList.toggle('display-none')
+					element.innerHTML += speciesBatch
+
+					observer.unobserve(lastCard)
+					var newLastCard = document.querySelector('.last-card')
+					if(newLastCard){
+						observer.observe(newLastCard)
+						let selector = '.page-' + entry.target.dataset.page + ' ~ .species_div'
+							+ ' > .species_card'
+						let cards = document.querySelectorAll(selector)
+						for(let i=0; i<cards.length; i++){
+							observer.observe(cards[i])
+						}
+					}
+
+
+				}else if(entry.target.classList.contains('species_card')){
+					this.insertWikiSummaryByCard(entry.target)
+					observer.unobserve(entry.target)
+				}
+			}
+		})
+	}
+
+	async setupObserver(){
+
+		let observer = new IntersectionObserver(this.intersectionHandler.bind(this), {  root: null, threshold: 0.25 });
+		observer.observe(document.querySelector('.last-card'))
+		let cards = document.querySelectorAll('.species_card')
+		for(let i=0; i<cards.length; i++){
+			observer.observe(cards[i])
+		}
+
+	}
+
+	insertWikiSummaryByCard(card){
+		const wiki_url = "https://en.wikipedia.org/api/rest_v1/page/summary/"
+		let wiki = card.dataset.wiki
+
+		if(wiki){
+			let wikiArr = wiki.split('/')
+			fetch(wiki_url+wikiArr[wikiArr.length-1]).then( a =>{
+				a.json().then(data =>{
+					let wiki_sum = card.querySelector('.wiki_div')
+					wiki_sum.innerHTML = data.extract_html
+					let wiki_link = document.createElement('a')
+					wiki_link.innerText = "[source]"
+					wiki_link.href = wiki 
+					wiki_link.target = '_blank'
+					let sup = document.createElement('sup')
+					sup.append(wiki_link)
+					wiki_sum.lastElementChild.append(sup)
+				})
+				
+			})
+		}
+	}
+
+}
+
+class MapProgressBar{
+	loadingDict = {}
+
+	constructor(options){
+		this.loadingText = options.loadingText 
+		this.progressBar = options.progressBar
+		this.loadingDict = {}
+	}
+
+	//resource = { key: key, loading: BOOLEAN }
+	update(resource){
+
+		if(this.loadingDict[resource.key]){
+			this.loadingDict[resource.key].loading = resource.loading 
+		}else{
+			this.loadingDict[resource.key] = resource
+		}
+
+		if(this.loadingText){
+			let newText = Object.values(this.loadingDict).filter(a => a.loading).map(x => x.key)
+			this.loadingText.innerText = newText.join('\n')		
+		}
+
+		if(this.progressBar){
+			this.progressBar.style.visibility = 'visible'
+			this.progressBar.parentElement.style.visibility = 'visible'
+			this.progressBar.style.width = this.getProgress() + '%'
+		}
+
+		if(Object.values(this.loadingDict).filter(a => a.loading).length == 0){
+			this.loadingDict = {} 
+			if(this.progressBar){
+				this.progressBar.style.visibility = 'hidden'
+				this.progressBar.parentElement.style.visibility = 'hidden'
+			}
+		}
+
+
+	}
+
+	getProgress(){
+		let total = Object.values(this.loadingDict).length
+		let done = Object.values(this.loadingDict).filter(a => !a.loading).length 
+		return ((done/total)*100)
+	}
+
+	getPending(){
+		return Object.values(this.loadingDict).filter(a => a.loading).map(x => x.key)
+	}
+
+	refresh(){
+		this.loadingDict = {}
+	}
+
 }
 
 function setPanelListeners(){
@@ -468,120 +599,6 @@ function showToast(species_count,total_obs){
 	toastBootstrap.show()
 }
 
-function insertWikiSummaryByCard(card){
-	const wiki_url = "https://en.wikipedia.org/api/rest_v1/page/summary/"
-	let wiki = card.dataset.wiki
-
-	if(wiki){
-		let wikiArr = wiki.split('/')
-		fetch(wiki_url+wikiArr[wikiArr.length-1]).then( a =>{
-			a.json().then(data =>{
-				let wiki_sum = card.querySelector('.wiki_div')
-				wiki_sum.innerHTML = data.extract_html
-				let wiki_link = document.createElement('a')
-				wiki_link.innerText = "[source]"
-				wiki_link.href = wiki 
-				wiki_link.target = '_blank'
-				let sup = document.createElement('sup')
-				sup.append(wiki_link)
-				wiki_sum.lastElementChild.append(sup)
-			})
-			
-		})
-	}
-}
-
-
-async function getSpeciesCards(category,extent,page){
-
-	let url = document.getElementById('species-panel').dataset.link + '?' + new URLSearchParams({
-		'extent': extent,
-		'category': category,
-		'page': page ?? 1,
-		'per_page': 10
-	})
-
-	const response = await fetch(url);
-
-	if(!response.ok){
-		throw new Error('Failed to load: ' + url + "\nStatus: " + response.status) 
-	}
-
-	var html = await response.text()
-
-	return html
-}
-
-async function setupObserver(category,extent){
-
-	async function intersectionHandler(entries,observer){
-		entries.forEach( async (entry)=>{
-			if(entry.isIntersecting){
-				if(entry.target.classList.contains('species_div') &&
-					entry.target.classList.contains('last-card') ){
-					var lastCard = entry.target 
-					lastCard.classList.toggle('last-card')
-					lastCard.querySelector('.batch-load').classList.toggle('display-none')
-					var page = parseInt(entry.target.dataset.page)+1
-					var element = document.getElementById('species-panel').lastElementChild
-					var speciesBatch = await getSpeciesCards(category,extent,page)
-					lastCard.querySelector('.batch-load').classList.toggle('display-none')
-					element.innerHTML += speciesBatch
-
-					observer.unobserve(lastCard)
-					var newLastCard = document.querySelector('.last-card')
-					if(newLastCard){
-						observer.observe(newLastCard)
-						let selector = '.page-' + entry.target.dataset.page + ' ~ .species_div'
-							+ ' > .species_card'
-						let cards = document.querySelectorAll(selector)
-						for(let i=0; i<cards.length; i++){
-							observer.observe(cards[i])
-						}
-					}
-
-
-				}else if(entry.target.classList.contains('species_card')){
-					insertWikiSummaryByCard(entry.target)
-					observer.unobserve(entry.target)
-				}
-			}
-		})
-	}
-
-	let observer = new IntersectionObserver(intersectionHandler, {  root: null, threshold: 0.5 });
-	observer.observe(document.querySelector('.last-card'))
-	let cards = document.querySelectorAll('.species_card')
-	for(let i=0; i<cards.length; i++){
-		observer.observe(cards[i])
-	}
-
-}
-
-async function searchForBirds(category,extent) {
-
-	//get all species
-	let page = 1
-	let speciesBatch = await getSpeciesCards(category,extent,page)
-	document.getElementById('species-panel').innerHTML = speciesBatch;
-
-	setupObserver(category,extent)
-
-	document.getElementById('species-panel-spinner').style.display = 'none'
-	document.getElementById('species-panel').style.display = 'inline-block'
-	document.getElementById('species-panel').scrollTop = 0;
-
-	var total_obs = document.getElementById('panelMetaData').dataset.totalObs 
-	var species_count = document.getElementById('panelMetaData').dataset.speciesCount  
-
-	showToast(species_count,total_obs)
-
-	document.getElementById('map-spinner').style.display = 'none'
-	document.getElementById('search').style.visibility = 'visible'
-
-	return true 
-}
-
 function pickCategory(cat){
 	document.getElementById('categoryPicker').textContent = cat.charAt(0).toUpperCase() + cat.substring(1) + '?'
 	category = cat
@@ -597,8 +614,6 @@ function search() {
 	for(let i=0; i<allSpinners.length; i++){
 		allSpinners[i].style.display = 'inline-block'
 	}
-
-	document.getElementById('species-panel').innerHTML = ""
 
 	//clear map
 	let overlays = map.getOverlays()
@@ -625,8 +640,12 @@ function search() {
 	coord = coord.map(x => Math.round((x + Number.EPSILON) * 100000)/ 100000)
 	zoom = Math.round((zoom + Number.EPSILON) * 100)/100
 
-	//search for birds on your location
-	searchForBirds(category,extent).then(r => {
+	speciesBlock.set({category: category, extent:extent}).then(r=>{
+		
+		var total_obs = document.getElementById('panelMetaData').dataset.totalObs 
+		var species_count = document.getElementById('panelMetaData').dataset.speciesCount  
+		showToast(species_count,total_obs)
+		
 		//successful search: push link to history and set cookies
 		url = load_url + '/' + category.toLowerCase() + '/@' + coord[1] + ',' + coord[0] + ',' + zoom + 'z'
 		window.history.pushState({'coord': coord, 'zoom': zoom},"", url)
@@ -634,16 +653,15 @@ function search() {
 		document.cookie = "lng="+coord[0]+";path=/; SameSite=Strict;"
 		document.cookie = "z="+zoom + ";path=/; SameSite=Strict;"
 		document.cookie = "category=" + category + ";path=/; SameSite=Strict;"
-	}).catch(e => {
-		//something went wrong or fetch is aborted
+	}).catch(e=>{
 		console.log(e)
-		document.getElementById('search').style.visibility = 'visible'
+	}).finally(()=>{
 		document.getElementById('species-panel-spinner').style.display = 'none'
 		document.getElementById('species-panel').style.display = 'inline-block'
 		document.getElementById('species-panel').scrollTop = 0;
 		document.getElementById('map-spinner').style.display = 'none'
+		document.getElementById('search').style.visibility = 'visible'
 	})
-
 
 }
 
@@ -702,18 +720,19 @@ function obsSourceSetProperties(data){
 	return f
 }
 
-async function retrieveObsData(id){
+function retrieveObsData(id,callback){
 
 	if(obsMetaData[id]){
-		console.log('cache')
-		infoOverlay.postUpdate(obsSourceSetProperties(obsMetaData[id]))
+		if(callback){
+			callback(obsSourceSetProperties(obsMetaData[id]))
+		}
 	}else if(localStorage.getItem(id)){
-		console.log('local storage')
 		let cache = localStorage.getItem(id)
 		obsMetaData[id] = JSON.parse(cache)
-		infoOverlay.postUpdate(obsSourceSetProperties(obsMetaData[id]))
+		if(callback){
+			callback(obsSourceSetProperties(obsMetaData[id]))
+		}
 	}else{
-		console.log('retrieve')
 
 		let IDsWithoutMetaData = [id]
 		grid[id]['status'] = 'retrieving'
@@ -731,7 +750,6 @@ async function retrieveObsData(id){
 		}
 
 		let url = obs_url + '?id=' + IDsWithoutMetaData
-		let obs_data = await fetch(url);
 
 		fetch(url).then(obs_data=>{
 			if (!obs_data.ok){
@@ -770,13 +788,75 @@ async function retrieveObsData(id){
 					}
 				}
 
-				let f = obsSourceSetProperties(obsMetaData[id])
-				infoOverlay.postUpdate(f)
+				if(callback){
+					let f = obsSourceSetProperties(obsMetaData[id])
+					callback(f)
+				}
 			})
 		})
 	}
 	
 }
+
+function loadGridJSON(evt){
+
+	let coords = evt.tile.getTileCoord()
+	let extent = ol.proj.transformExtent(pseudoLayer.getExtent(), 'EPSG:3857', 'EPSG:4326');
+
+	let url = '/points/'+ coords.join('/') + '.grid.json'
+	let newURL = url + '?category=' + category + '&extent=' + extent
+
+	cProgress.update({ loading:true, key: url  })
+
+	let response
+
+ 	fetch(newURL,{signal}).then(response=>{
+ 		if(!response.ok){
+	 		cProgress.update({ loading:false, key: url  })
+	 	}else{
+	 		response.json().then(data=>{
+	 			let features = []
+
+				if(!data.data){
+					cProgress.update({ loading:false, key: url  })
+					return 0
+				}
+
+				for(const [key,value] of Object.entries(data.data)){
+					if(!grid[key]){
+						grid[key] = {
+							id: value.id,
+							location: [value.longitude,value.latitude],
+							zxy: coords.join()
+						}
+						
+						let f = new ol.Feature({
+							id: value.id,
+							geometry: new ol.geom.Point(ol.proj.fromLonLat([value.longitude,value.latitude])),
+							retrieveMetaData: retrieveObsData
+						})
+						f.setId(value.id)
+						features.push(f)
+					}else{
+						grid[key].zxy = coords.join()
+					}
+				}
+				if(features.length){
+					obsSource.addFeatures(features)
+					clusterSource.refresh()
+				}
+				cProgress.update({ loading:false, key: url  })
+	 		})
+	 	}
+ 	}).catch(e=>{
+ 		cProgress.update({ loading:false, key: url  })
+ 		return 0
+ 	})
+
+	return true
+}
+
+
 
 var controller 	//controller for fetch abort
 var signal
@@ -784,7 +864,8 @@ var color = 0
 var category = 'birds'
 var obsMetaData = {}
 var grid = {}
-
+const speciesBlock = new speciesContent({container: document.getElementById('species-panel'),
+										 url: document.getElementById('species-panel').dataset.link})
 // MAP
 const view = new ol.View({
     center: [0, 0],
@@ -865,6 +946,7 @@ map.addControl(new ol.control.Attribution({
 map.addControl(new searchPlacesControl(document.getElementById('searchPlaces')))
 
 //Map Events
+const cProgress = new MapProgressBar({progressBar : document.getElementById('map-progress-bar')})
 let prevFeatureCluster = null;
 function showCards(evt){
 
@@ -913,65 +995,6 @@ map.on('pointermove', function(evt){
   	}
 })
 map.on('click', showCards)
-
-class MapProgressBar{
-	loadingDict = {}
-
-	constructor(options){
-		this.loadingText = options.loadingText 
-		this.progressBar = options.progressBar
-		this.loadingDict = {}
-	}
-
-	//resource = { key: key, loading: BOOLEAN }
-	update(resource){
-
-		if(this.loadingDict[resource.key]){
-			this.loadingDict[resource.key].loading = resource.loading 
-		}else{
-			this.loadingDict[resource.key] = resource
-		}
-
-		if(this.loadingText){
-			let newText = Object.values(this.loadingDict).filter(a => a.loading).map(x => x.key)
-			this.loadingText.innerText = newText.join('\n')		
-		}
-
-		if(this.progressBar){
-			this.progressBar.style.visibility = 'visible'
-			this.progressBar.parentElement.style.visibility = 'visible'
-			this.progressBar.style.width = this.getProgress() + '%'
-		}
-
-		if(Object.values(this.loadingDict).filter(a => a.loading).length == 0){
-			this.loadingDict = {} 
-			if(this.progressBar){
-				this.progressBar.style.visibility = 'hidden'
-				this.progressBar.parentElement.style.visibility = 'hidden'
-			}
-		}
-
-
-	}
-
-	getProgress(){
-		let total = Object.values(this.loadingDict).length
-		let done = Object.values(this.loadingDict).filter(a => !a.loading).length 
-		return ((done/total)*100)
-	}
-
-	getPending(){
-		return Object.values(this.loadingDict).filter(a => a.loading).map(x => x.key)
-	}
-
-	refresh(){
-		this.loadingDict = {}
-	}
-
-}
-
-const cProgress = new MapProgressBar({progressBar : document.getElementById('map-progress-bar')})
-
 function updateProgress(evt){
 
 	switch (evt.type){
@@ -1008,58 +1031,3 @@ pseudoLayer.on('change:extent',function(e){
 })
 pseudoSource.on('tileloadstart',loadGridJSON)
 
-async function loadGridJSON(evt){
-
-	let coords = evt.tile.getTileCoord()
-	let extent = ol.proj.transformExtent(pseudoLayer.getExtent(), 'EPSG:3857', 'EPSG:4326');
-
-	let url = '/points/'+ coords.join('/') + '.grid.json'
-	let newURL = url + '?category=' + category + '&extent=' + extent
-
-	cProgress.update({ loading:true, key: url  })
-
-	let response
-
- 	fetch(newURL,{signal}).then(response=>{
- 		if(!response.ok){
-	 		cProgress.update({ loading:false, key: url  })
-	 	}else{
-	 		response.json().then(data=>{
-	 			let features = []
-
-				if(!data.data){
-					cProgress.update({ loading:false, key: url  })
-					return 0
-				}
-
-				for(const [key,value] of Object.entries(data.data)){
-					if(!grid[key]){
-						grid[key] = {
-							id: value.id,
-							location: [value.longitude,value.latitude],
-							zxy: coords.join()
-						}
-						
-						let f = new ol.Feature({
-							id: value.id,
-							geometry: new ol.geom.Point(ol.proj.fromLonLat([value.longitude,value.latitude])),
-							retrieveMetaData: retrieveObsData
-						})
-						f.setId(value.id)
-						features.push(f)
-					}
-				}
-				if(features.length){
-					obsSource.addFeatures(features)
-					clusterSource.refresh()
-				}
-				cProgress.update({ loading:false, key: url  })
-	 		})
-	 	}
- 	}).catch(e=>{
- 		cProgress.update({ loading:false, key: url  })
- 		return 0
- 	})
-
-	return true
-}

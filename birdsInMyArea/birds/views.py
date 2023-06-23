@@ -110,18 +110,6 @@ def get_obs(request):
 def taxa_search(request,id=''):
 	data = taxa(request.GET,[id])
 
-	# simplified_taxa = []
-	# for key,value in enumerate(data['results']):
-	# 	if value['conservation_statuses']:
-	# 		info = {}
-	# 		info['id'] = value['id']
-	# 		info['status'] = value['conservation_statuses'][0]['status']
-	# 		info['description'] = value['conservation_statuses'][0]['description']
-	# 		info['url'] = value['conservation_statuses'][0]['url']
-	# 		info['all'] = value['conservation_statuses']
-
-	# 		simplified_taxa.append(info)
-
 	return JsonResponse(data)
 
 @cache_page(60 * 15)

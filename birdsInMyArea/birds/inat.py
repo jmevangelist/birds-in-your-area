@@ -4,6 +4,7 @@ from celery.exceptions import TimeoutError as CeleryTimeoutError
 from functools import wraps
 from datetime import datetime
 import logging
+from django.core.cache import cache
 
 url = "https://api.inaturalist.org/v1"
 
@@ -93,9 +94,36 @@ def observations(params,path=[],request='get'):
 	return tasker(params,path,request,'json')
 
 def taxa(params,path=[]):
-	path = ['','taxa'] + path
-	return tasker({},path,'get','json')
+	ids = path[0].split(',')
+	cached_taxa = cache.get_many(ids)
+	uncached_ids = list(filter(lambda id: id not in list(cached_taxa.keys()), ids ))
+	ret = {}
+
+	if uncached_ids:
+		path = ['','taxa'] + [",".join(uncached_ids)]
+		ret = tasker({},path,'get','json')
+		if ret['results']:
+			new = dict(map(lambda t: ( t['id'], t ),list(ret['results'])))
+			cache.set_many(new,6000)
+
+	combined = []
+	if cached_taxa:
+		combined = list(cached_taxa.values()) 
+
+	if ret.get('results'):
+		combined += list(ret.get('results'))
+	
+	ret['total_results'] = len(combined)
+	ret['results'] = combined
+
+	return ret
 
 def places(params,path=[]):
-	path = ['','places'] + path
-	return tasker(params,path,'get','json')
+	key = str(params).replace(" ","")
+	ret = cache.get(key)
+	if not ret:
+		path = ['','places'] + path
+		ret = tasker(params,path,'get','json')
+		cache.set(key,ret,600)
+	
+	return ret

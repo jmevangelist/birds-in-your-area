@@ -30,7 +30,7 @@
 			<div class="ms-1 mt-0 mb-1 position-relative" data-c="{{bird.taxon.conservation}}" style="font-size: smaller;">
 				<p class="fw-bold mb-0">Conservation Status:</p>
 				{% for conservation in bird.taxon.conservation %}
-					<p class="mb-0 ms-1"><em><strong class="{% red_list_class conservation.status %}">{{conservation.status | red_list_text}}</strong><sup><a href="{{conservation.url}}" target="_blank">[{{conservation.authority|truncate}}]</a></sup></em>
+					<p class="mb-0 ms-1"><em><strong class="{% red_list_class conservation.status %}">{{conservation.status | red_list_text}}</strong><sup><a href="{{conservation.url}}" target="_blank"> [{{conservation.authority|truncate}}]</a></sup></em>
 						{% if conservation.place %} on {{conservation.place.display_name}} {% endif %}
 						{% if conservation.description %}
 						</br><em> {{conservation.description}} </em>
